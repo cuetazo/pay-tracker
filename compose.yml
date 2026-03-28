@@ -29,8 +29,24 @@ services:
       - n8n_data:/home/node/.n8n
       - ./scripts:/home/node/scripts
 
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    restart: always
+    environment:
+      - POSTGRES_DB=tracker
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+
 volumes:
   n8n_data:
+  postgres_data:
 
 networks:
   shared_network:
