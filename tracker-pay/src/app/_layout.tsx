@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useAuthStore } from "../utils/authStore";
 
 export default function RootLayout() {
-  const { silentSignIn } = useAuthStore();
+  const { silentSignIn, isLoggedIn } = useAuthStore();
 
   useEffect(() => {
     GoogleSignin.configure({
@@ -19,10 +19,10 @@ export default function RootLayout() {
   return (
     <Stack>
       <StatusBar style="auto" />
-      <Stack.Protected guard={false}>
-        <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
+      <Stack.Protected guard={!isLoggedIn}>
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack.Protected>
-      <Stack.Protected guard={true}>
+      <Stack.Protected guard={isLoggedIn}>
         <Stack.Screen name="(protected)" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>

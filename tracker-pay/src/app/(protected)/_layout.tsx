@@ -8,12 +8,6 @@ export default function ProtectedLayout() {
   const { isLoggedIn } = useAuthStore();
   const router = useRouter();
 
-  /*  useEffect(() => {
-    if (!isLoggedIn) {
-      router.replace("/(auth)/login");
-    }
-  }, [isLoggedIn, router]);
- */
   return (
     <Tabs
       screenOptions={{
