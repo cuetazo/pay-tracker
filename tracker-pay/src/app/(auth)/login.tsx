@@ -1,54 +1,10 @@
 import Entypo from "@expo/vector-icons/Entypo";
-import {
-  GoogleSignin,
-  GoogleSigninButton,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from "@react-native-google-signin/google-signin";
-import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-
-GoogleSignin.configure({
-  webClientId:
-    "184071206390-jaqlpi38k4kko7qhjd4eorfos8mirf7a.apps.googleusercontent.com",
-  offlineAccess: false,
-  profileImageSize: 120,
-});
+import { GoogleSigninButton } from "@react-native-google-signin/google-signin";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useAuthStore } from "../../utils/authStore";
 
 export default function LoginScreen() {
-  useEffect(() => {}, []);
-  const [state, setState] = useState<{ userInfo: any | null }>({
-    userInfo: null,
-  });
-
-  const signIn = async () => {
-    try {
-      await GoogleSignin.hasPlayServices();
-      const response = await GoogleSignin.signIn();
-      console.log("response", response);
-      if (isSuccessResponse(response)) {
-        setState({ userInfo: response.data });
-      } else {
-        // sign in was cancelled by user
-      }
-    } catch (error) {
-      if (isErrorWithCode(error)) {
-        switch (error.code) {
-          case statusCodes.IN_PROGRESS:
-            // operation (eg. sign in) already in progress
-            break;
-          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
-            // Android only, play services not available or outdated
-            break;
-          default:
-          // some other error happened
-        }
-      } else {
-        // an error that's not related to google sign in occurred
-      }
-    }
-  };
+  const { user, SignIn, SignOut } = useAuthStore();
 
   return (
     <View style={styles.container}>
@@ -69,13 +25,24 @@ export default function LoginScreen() {
           style={{ width: 192, height: 48 }}
           size={GoogleSigninButton.Size.Wide}
           color={GoogleSigninButton.Color.Dark}
-          onPress={signIn}
+          onPress={SignIn}
         />
-        {state.userInfo && (
+        <TouchableOpacity
+          onPress={SignOut}
+          style={{
+            marginTop: 20,
+            backgroundColor: "red",
+            padding: 10,
+            borderRadius: 5,
+          }}
+        >
+          <Text style={{ color: "white" }}>Sign Out</Text>
+        </TouchableOpacity>
+        {user && (
           <>
-            <Text>{state.userInfo.user?.name}</Text>
-            <Text>{state.userInfo.user?.email}</Text>
-            <Text>{state.userInfo.user?.id}</Text>
+            <Text>{user.name}</Text>
+            <Text>{user.email}</Text>
+            <Text>{user.id}</Text>
           </>
         )}
       </View>

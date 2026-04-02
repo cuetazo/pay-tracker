@@ -1,21 +1,30 @@
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import { useAuthStore } from "../utils/authStore";
 
 export default function RootLayout() {
+  const { silentSignIn } = useAuthStore();
+
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: process.env.WEB_CLIENT_ID,
+      offlineAccess: false,
+      profileImageSize: 120,
+    });
+    silentSignIn();
+  }, [silentSignIn]);
+
   return (
-    <>
-      <Stack />
-      {/* <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: "#1e1e1e" },
-          headerTintColor: "#fff",
-        }}
-      >
-        <Stack.Screen name="(auth)/login" options={{ title: "Login" }} />
-        <Stack.Screen
-          name="(protected)/index"
-          options={{ title: "Protected" }}
-        />
-      </Stack> */}
-    </>
+    <Stack>
+      <StatusBar style="auto" />
+      <Stack.Protected guard={false}>
+        <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
+      </Stack.Protected>
+      <Stack.Protected guard={true}>
+        <Stack.Screen name="(protected)" options={{ headerShown: false }} />
+      </Stack.Protected>
+    </Stack>
   );
 }

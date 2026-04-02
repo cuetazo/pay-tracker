@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
 
-export default function ProtectedScreen() {
+export default function FourthScreen() {
   return (
-    <View style={styles.container}>
-      <Text>This is a protected screen.</Text>
+    <View>
+      <Text>This is the fourth screen.</Text>
     </View>
   );
 }

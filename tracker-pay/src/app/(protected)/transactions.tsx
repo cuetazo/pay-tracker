@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
 
-export default function ProtectedScreen() {
+export default function TransactionsScreen() {
   return (
     <View style={styles.container}>
-      <Text>This is a protected screen.</Text>
+      <Text>This is the wasa screen.</Text>
     </View>
   );
 }
