@@ -1,18 +1,40 @@
+import AvatarMenu from "@/components/AvatarMenu";
+import { Colors } from "@/constants/theme_test";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Tabs, useRouter } from "expo-router";
+import { useEffect } from "react";
 import { useAuthStore } from "../../utils/authStore";
 export default function ProtectedLayout() {
   const { isLoggedIn } = useAuthStore();
   const router = useRouter();
 
+  useEffect(() => {
+    if (!isLoggedIn) {
+      router.replace("/(auth)/login");
+    }
+  }, [isLoggedIn, router]);
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "teal",
+        tabBarActiveTintColor: Colors.primary.main,
         animation: "fade",
+        sceneStyle: {
+          //backgroundColor: Colors.neutral.gray100,
+          backgroundColor: Colors.primary.soft,
+        },
+        headerStyle: {
+          backgroundColor: Colors.primary.background,
+        },
+        tabBarStyle: {
+          backgroundColor: Colors.primary.background,
+          borderTopWidth: 0.8,
+        },
+        headerRight: () => <AvatarMenu />,
+        tabBarInactiveTintColor: Colors.neutral.gray500,
         //tabBarActiveBackgroundColor: "teal",
       }}
     >
@@ -30,16 +52,16 @@ export default function ProtectedLayout() {
       <Tabs.Screen
         name="transactions"
         options={{
-          title: "Transactions",
+          title: "Transacciones",
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="cash-sync" size={24} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="third"
+        name="budgets"
         options={{
-          title: "Third",
+          title: "consumo",
           tabBarIcon: ({ color, size }) => (
             <FontAwesome5 name="piggy-bank" size={24} color={color} />
           ),

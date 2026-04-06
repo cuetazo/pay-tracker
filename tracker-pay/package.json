@@ -17,6 +17,7 @@
     "@react-navigation/drawer": "^7.9.8",
     "@react-navigation/elements": "^2.9.10",
     "@react-navigation/native": "^7.1.33",
+    "@supabase/supabase-js": "^2.101.1",
     "expo": "55.0.10-canary-20260328-2049187",
     "expo-auth-session": "55.0.11-canary-20260328-2049187",
     "expo-constants": "55.0.10-canary-20260328-2049187",

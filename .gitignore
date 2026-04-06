@@ -2,6 +2,9 @@
 
 # dependencies
 node_modules/
+tracker-pay/.env
+tracker-pay/src/.env
+
 
 # Expo
 .expo/
