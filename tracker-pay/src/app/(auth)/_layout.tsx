@@ -9,7 +9,7 @@ export default function AuthLayout() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      router.replace("/(protected)");
+      router.replace("/(tabs)");
     }
   }, [isLoggedIn, router]);
 

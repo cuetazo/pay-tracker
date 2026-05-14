@@ -24,13 +24,9 @@ export default function ProtectedLayout() {
         animation: "fade",
         sceneStyle: {
           //backgroundColor: Colors.neutral.gray100,
-          backgroundColor: Colors.primary.soft,
         },
-        headerStyle: {
-          backgroundColor: Colors.primary.background,
-        },
+        headerStyle: {},
         tabBarStyle: {
-          backgroundColor: Colors.primary.background,
           borderTopWidth: 0.8,
         },
         headerRight: () => <AvatarMenu />,

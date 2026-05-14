@@ -1,13 +1,14 @@
 import { Slot, useRouter } from "expo-router";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function onBoardingLayout() {
   const router = useRouter();
 
   return (
-    <View style={styles.layout}>
+    <SafeAreaView style={styles.layout}>
       <Slot />
-    </View>
+    </SafeAreaView>
   );
 }
 const styles = StyleSheet.create({
@@ -17,5 +18,6 @@ const styles = StyleSheet.create({
     height: "100%",
     alignItems: "center",
     justifyContent: "center",
+    padding: 20,
   },
 });

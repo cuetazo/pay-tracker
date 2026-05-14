@@ -14,6 +14,10 @@ export default function RootLayout() {
       offlineAccess: false, //mantener en false sino se rompe todo
       profileImageSize: 120,
     });
+    const init = async () => {
+      await silentSignIn();
+    };
+    init();
   }, [silentSignIn]);
 
   return (
@@ -27,7 +31,7 @@ export default function RootLayout() {
           <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
         </Stack.Protected>
         <Stack.Protected guard={isLoggedIn}>
-          <Stack.Screen name="(protected)" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen
             name="avatar-menu-modal"
             options={{
