@@ -4,14 +4,17 @@ import {
   Colors,
   FontSize,
   FontWeight,
+  Shadow,
   Spacing,
 } from "@/constants/theme";
+import { Database } from "@/services/db/schema";
 import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,42 +29,67 @@ type Profile = {
   onboarding_completed: boolean;
 };
 
-export default function ProfileScreen() {
+type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
+type Category = Database["public"]["Tables"]["category"]["Row"];
+
+const MONTH_NAMES = [
+  "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+  "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre",
+];
+
+export default function HomeScreen() {
   const { user, SignOut } = useAuthStore();
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
+  const currentMonth = MONTH_NAMES[new Date().getMonth()].toUpperCase();
 
-  const fetchProfile = async () => {
+  const fetchAll = useCallback(async () => {
     if (!user?.id) return;
+    setLoading(true);
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .select(
-        "monthly_income, monthly_spending_limit, current_month_spending, onboarding_completed",
-      )
-      .eq("id", user.id)
-      .single();
+    const [profRes, txRes, catRes] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select(
+          "monthly_income, monthly_spending_limit, current_month_spending, onboarding_completed",
+        )
+        .eq("id", user.id)
+        .single(),
+      supabase
+        .from("transactions")
+        .select("*")
+        .eq("userId", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabase.from("category").select("*").eq("userId", user.id),
+    ]);
 
-    if (error) {
-      console.error("Error fetching profile:", error);
-    } else {
-      setProfile(data);
-    }
+    if (profRes.data) setProfile(profRes.data);
+    if (txRes.data) setTransactions(txRes.data);
+    if (catRes.data) setCategories(catRes.data);
     setLoading(false);
-  };
+  }, [user?.id]);
 
-  const remainingBudget = profile
-    ? profile.monthly_spending_limit - profile.current_month_spending
-    : 0;
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const percentUsed =
-    profile && profile.monthly_spending_limit > 0
-      ? (profile.current_month_spending / profile.monthly_spending_limit) * 100
-      : 0;
+  const fmt = (n: number) =>
+    `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const totalIncome = transactions
+    .filter((t) => t.type === "income")
+    .reduce((s, t) => s + (t.amount ?? 0), 0);
+
+  const totalExpense = transactions
+    .filter((t) => t.type === "expense")
+    .reduce((s, t) => s + (t.amount ?? 0), 0);
+
+  const spent = profile?.current_month_spending ?? 0;
+  const limit = profile?.monthly_spending_limit ?? 0;
+  const percentUsed = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
+  const remaining = limit - spent;
 
   if (loading) {
     return (
@@ -72,223 +100,345 @@ export default function ProfileScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.avatar}>
-          {user?.photo ? (
-            <Text style={styles.avatarText}>{user.name?.charAt(0)}</Text>
-          ) : (
-            <MaterialCommunityIcons
-              name="account"
-              size={50}
-              color={Colors.primary.main}
-            />
-          )}
-        </View>
-        <Text style={styles.name}>{user?.name}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
-      </View>
+    <FlatList
+      data={transactions}
+      keyExtractor={(item) => item.id}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.listContent}
+      ListFooterComponent={<View style={{ height: 32 }} />}
+      renderItem={({ item }) => {
+        const isIncome = item.type === "income";
+        const cat = categories.find((c) => c.id === item.categoryId);
+        const iconColor = isIncome ? Colors.accent.income : Colors.accent.expense;
+        const iconBg = iconColor + "22";
 
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
+        return (
+          <View style={styles.txCard}>
+            <View style={[styles.txIconBg, { backgroundColor: iconBg }]}>
+              <MaterialCommunityIcons
+                name={isIncome ? "arrow-down-left" : "arrow-up-right"}
+                size={22}
+                color={iconColor}
+              />
+            </View>
+            <View style={styles.txInfo}>
+              <Text style={styles.txName} numberOfLines={1}>
+                {item.destinatary ?? "—"}
+              </Text>
+              <Text style={styles.txMeta}>
+                {cat?.name ?? "Sin categoría"}
+              </Text>
+            </View>
+            <Text style={[styles.txAmount, { color: iconColor }]}>
+              {isIncome ? "+" : "-"} {fmt(item.amount ?? 0)}
+            </Text>
+          </View>
+        );
+      }}
+      ListEmptyComponent={
+        <View style={styles.emptyTx}>
           <MaterialCommunityIcons
-            name="cash"
-            size={24}
-            color={Colors.accent.income}
+            name="cash-remove"
+            size={36}
+            color={Colors.neutral.gray300}
           />
-          <Text style={styles.statLabel}>Ingreso Mensual</Text>
-          <Text style={styles.statValue}>
-            S/{" "}
-            {profile?.monthly_income?.toLocaleString("es-PE", {
-              minimumFractionDigits: 2,
-            }) ?? 0}
-          </Text>
+          <Text style={styles.emptyTxText}>Sin transacciones aún</Text>
         </View>
+      }
+      ListHeaderComponent={
+        <View>
+          {/* ── Greeting ─────────────────────────────────────── */}
+          <View style={styles.greetingRow}>
+            <View>
+              <Text style={styles.greetingSub}>
+                Bienvenido {user?.name?.split(" ")[0]}!
+              </Text>
+              <Text style={styles.greetingTitle}>Tus finanzas</Text>
+            </View>
+            <TouchableOpacity style={styles.avatarBtn} onPress={SignOut}>
+              <MaterialCommunityIcons
+                name="account"
+                size={26}
+                color={Colors.primary.main}
+              />
+            </TouchableOpacity>
+          </View>
 
-        <View style={styles.statCard}>
-          <MaterialCommunityIcons
-            name="wallet"
-            size={24}
-            color={Colors.primary.main}
-          />
-          <Text style={styles.statLabel}>Límite de Gasto</Text>
-          <Text style={styles.statValue}>
-            S/{" "}
-            {profile?.monthly_spending_limit?.toLocaleString("es-PE", {
-              minimumFractionDigits: 2,
-            }) ?? 0}
-          </Text>
+          {/* ── Balance card ──────────────────────────────────── */}
+          <View style={styles.balanceCard}>
+            {/* decorative circles */}
+            <View style={styles.decorCircle1} />
+            <View style={styles.decorCircle2} />
+
+            <View style={styles.balanceCardTop}>
+              <Text style={styles.balanceCardTopLabel}>Balance total</Text>
+              <View style={styles.badgePct}>
+                <MaterialCommunityIcons
+                  name="trending-up"
+                  size={12}
+                  color={Colors.neutral.white}
+                />
+                <Text style={styles.badgePctText}>+ 12%</Text>
+              </View>
+            </View>
+
+            <Text style={styles.balanceMonth}>{currentMonth}</Text>
+            <Text style={styles.balanceAmount}>
+              {fmt(profile?.monthly_income ?? 0)}
+            </Text>
+
+            <View style={styles.balanceSubRow}>
+              <View style={styles.balanceSubCard}>
+                <Text style={styles.balanceSubLabel}>Ingresos</Text>
+                <Text style={styles.balanceSubValue}>{fmt(totalIncome)}</Text>
+              </View>
+              <View style={styles.balanceSubDivider} />
+              <View style={styles.balanceSubCard}>
+                <Text style={styles.balanceSubLabel}>Gastos</Text>
+                <Text style={[styles.balanceSubValue, { color: Colors.accent.expense }]}>
+                  -{fmt(totalExpense)}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* ── Spending progress ─────────────────────────────── */}
+          <View style={styles.progressCard}>
+            <View style={styles.progressCardHeader}>
+              <Text style={styles.progressCardTitle}>Gastos este mes</Text>
+              <Text style={styles.progressCardRemaining}>
+                {Math.round(100 - percentUsed)}% restante
+              </Text>
+            </View>
+
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${percentUsed}%` as any,
+                    backgroundColor:
+                      percentUsed >= 90
+                        ? Colors.accent.expense
+                        : Colors.primary.main,
+                  },
+                ]}
+              />
+            </View>
+
+            <View style={styles.progressLabels}>
+              <Text style={styles.progressLabelText}>{fmt(spent)}</Text>
+              <Text style={styles.progressLabelText}>{fmt(limit)}</Text>
+            </View>
+          </View>
+
+          {/* ── Recent section label ──────────────────────────── */}
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionTitle}>Recientes</Text>
+          </View>
         </View>
-
-        <View style={styles.statCard}>
-          <MaterialCommunityIcons
-            name="trending-down"
-            size={24}
-            color={Colors.accent.expense}
-          />
-          <Text style={styles.statLabel}>Gastado este mes</Text>
-          <Text style={styles.statValue}>
-            S/{" "}
-            {profile?.current_month_spending?.toLocaleString("es-PE", {
-              minimumFractionDigits: 2,
-            }) ?? 0}
-          </Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <MaterialCommunityIcons
-            name="piggy-bank"
-            size={24}
-            color={Colors.accent.income}
-          />
-          <Text style={styles.statLabel}>Presupuesto Restante</Text>
-          <Text
-            style={[
-              styles.statValue,
-              remainingBudget < 0 && { color: Colors.accent.expense },
-            ]}
-          >
-            S/{" "}
-            {remainingBudget.toLocaleString("es-PE", {
-              minimumFractionDigits: 2,
-            })}
-          </Text>
-        </View>
-      </View>
-
-      {/* Progress bar */}
-      <View style={styles.progressSection}>
-        <Text style={styles.progressLabel}>
-          Progreso del presupuesto mensual
-        </Text>
-        <View style={styles.progressTrack}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                width: `${Math.min(percentUsed, 100)}%`,
-                backgroundColor:
-                  percentUsed > 90
-                    ? Colors.accent.expense
-                    : Colors.accent.income,
-              },
-            ]}
-          />
-        </View>
-        <Text style={styles.progressText}>{percentUsed.toFixed(1)}% usado</Text>
-      </View>
-
-      <TouchableOpacity style={styles.signOutButton} onPress={SignOut}>
-        <MaterialCommunityIcons name="logout" size={20} color="white" />
-        <Text style={styles.signOutText}>Cerrar Sesión</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      }
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.primary.background,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+  listContent: { paddingHorizontal: Spacing.xl },
+
+  // ── Greeting ──────────────────────────────────────────────────────
+  greetingRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
   },
-  header: {
-    alignItems: "center",
-    padding: Spacing.xxl,
-    backgroundColor: Colors.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.neutral.gray100,
+  greetingSub: {
+    fontSize: FontSize.md,
+    color: Colors.neutral.gray500,
+    marginBottom: 2,
   },
-  avatar: {
-    width: 80,
-    height: 80,
+  greetingTitle: {
+    fontSize: FontSize.display,
+    fontWeight: FontWeight.extrabold,
+    color: Colors.neutral.gray900,
+  },
+  avatarBtn: {
+    width: 44,
+    height: 44,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.primary.soft,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: Spacing.md,
   },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: FontWeight.bold,
-    color: Colors.primary.main,
-  },
-  name: {
-    fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
-    color: Colors.neutral.gray900,
-    marginBottom: Spacing.xs,
-  },
-  email: {
-    fontSize: FontSize.sm,
-    color: Colors.neutral.gray500,
-  },
-  statsContainer: {
+
+  // ── Balance card ──────────────────────────────────────────────────
+  balanceCard: {
+    backgroundColor:"#3282DE",
+    borderRadius: BorderRadius.xl,
     padding: Spacing.xl,
-    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+    overflow: "hidden",
+    ...Shadow.lg,
   },
-  statCard: {
-    backgroundColor: Colors.neutral.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
+
+  balanceCardTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+  },
+  balanceCardTopLabel: {
+    fontSize: FontSize.md,
+    color: "rgba(255,255,255,0.8)",
+  },
+  badgePct: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md,
+    gap: 3,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
   },
-  statLabel: {
-    flex: 1,
+  badgePctText: {
+    fontSize: FontSize.xs,
+    color: Colors.neutral.white,
+    fontWeight: FontWeight.semibold,
+  },
+  balanceMonth: {
     fontSize: FontSize.sm,
+    color: "rgba(255,255,255,0.7)",
+    letterSpacing: 4,
+    marginBottom: 4,
   },
-  statValue: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
-    color: Colors.neutral.gray900,
+  balanceAmount: {
+    fontSize: 36,
+    fontWeight: FontWeight.extrabold,
+    color: Colors.neutral.white,
+    marginBottom: Spacing.lg,
   },
-  progressSection: {
-    backgroundColor: Colors.neutral.white,
-    margin: Spacing.xl,
-    marginTop: 0,
-    padding: Spacing.lg,
+  balanceSubRow: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.12)",
     borderRadius: BorderRadius.lg,
+    overflow: "hidden",
   },
-  progressLabel: {
-    fontSize: FontSize.sm,
-    color: Colors.neutral.gray700,
+  balanceSubCard: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+  },
+  balanceSubDivider: {
+    width: 1,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  balanceSubLabel: {
+    fontSize: FontSize.xs,
+    color: "rgba(255,255,255,0.7)",
+    marginBottom: 2,
+  },
+  balanceSubValue: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+    color: Colors.neutral.white,
+  },
+
+  // ── Progress card ─────────────────────────────────────────────────
+  progressCard: {
+    backgroundColor: Colors.neutral.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.xl,
+    marginBottom: Spacing.lg,
+    ...Shadow.md,
+  },
+  progressCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: Spacing.md,
   },
+  progressCardTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+    color: Colors.neutral.gray900,
+  },
+  progressCardRemaining: {
+    fontSize: FontSize.sm,
+    color: Colors.neutral.gray400,
+  },
   progressTrack: {
-    height: 8,
-    backgroundColor: Colors.neutral.gray200,
+    height: 10,
+    backgroundColor: Colors.neutral.gray100,
     borderRadius: BorderRadius.full,
     overflow: "hidden",
+    marginBottom: Spacing.sm,
   },
   progressFill: {
     height: "100%",
     borderRadius: BorderRadius.full,
   },
-  progressText: {
-    fontSize: FontSize.xs,
-    color: Colors.neutral.gray500,
-    marginTop: Spacing.xs,
-    textAlign: "right",
-  },
-  signOutButton: {
+  progressLabels: {
     flexDirection: "row",
-    backgroundColor: Colors.accent.expense,
-    margin: Spacing.xl,
-    padding: Spacing.lg,
+    justifyContent: "space-between",
+  },
+  progressLabelText: {
+    fontSize: FontSize.xs,
+    color: Colors.neutral.gray400,
+  },
+
+  // ── Section ───────────────────────────────────────────────────────
+  sectionRow: {
+    marginBottom: Spacing.md,
+  },
+  sectionTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.semibold,
+    color: Colors.neutral.gray900,
+  },
+
+  // ── Transaction row ───────────────────────────────────────────────
+  txCard: {
+    backgroundColor: Colors.neutral.white,
     borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    marginBottom: Spacing.sm,
+    ...Shadow.md,
+  },
+  txIconBg: {
+    width: 46,
+    height: 46,
+    borderRadius: BorderRadius.md,
     justifyContent: "center",
     alignItems: "center",
-    gap: Spacing.sm,
   },
-  signOutText: {
-    color: Colors.neutral.white,
+  txInfo: { flex: 1 },
+  txName: {
     fontSize: FontSize.md,
     fontWeight: FontWeight.semibold,
+    color: Colors.neutral.gray900,
+  },
+  txMeta: {
+    fontSize: FontSize.sm,
+    color: Colors.neutral.gray400,
+    marginTop: 2,
+  },
+  txAmount: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+  },
+
+  emptyTx: {
+    alignItems: "center",
+    paddingVertical: Spacing.xxxl,
+    gap: Spacing.sm,
+  },
+  emptyTxText: {
+    fontSize: FontSize.sm,
+    color: Colors.neutral.gray400,
   },
 });
