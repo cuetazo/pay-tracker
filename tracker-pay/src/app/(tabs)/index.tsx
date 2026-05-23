@@ -1,22 +1,22 @@
 // app/(protected)/profile.tsx
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  FontWeight,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    FontWeight,
+    Spacing,
 } from "@/constants/theme";
-import { useAuthStore } from "@/utils/authStore";
-import { supabase } from "@/utils/supabase";
+import { useAuthStore } from "@/stores/authStore";
+import { supabase } from "@/stores/supabase";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 type Profile = {

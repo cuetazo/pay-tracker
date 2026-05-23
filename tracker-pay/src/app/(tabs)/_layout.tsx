@@ -6,7 +6,7 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Tabs, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { useAuthStore } from "../../utils/authStore";
+import { useAuthStore } from "../../stores/authStore";
 export default function ProtectedLayout() {
   const { isLoggedIn } = useAuthStore();
   const router = useRouter();

@@ -1,7 +1,7 @@
 import Entypo from "@expo/vector-icons/Entypo";
 import { Image } from "expo-image";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useAuthStore } from "../../utils/authStore";
+import { useAuthStore } from "../../stores/authStore";
 
 export default function LoginScreen() {
   const { user, SignIn, SignOut } = useAuthStore();

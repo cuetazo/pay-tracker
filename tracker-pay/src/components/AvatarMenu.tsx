@@ -1,4 +1,4 @@
-import { useAuthStore } from "@/utils/authStore";
+import { useAuthStore } from "@/stores/authStore";
 import { useRouter } from "expo-router";
 import { Image, StyleSheet, TouchableHighlight } from "react-native";
 

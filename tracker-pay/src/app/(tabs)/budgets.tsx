@@ -8,8 +8,8 @@ import {
   Spacing,
 } from "@/constants/theme";
 import { Database } from "@/services/db/schema";
-import { useAuthStore } from "@/utils/authStore";
-import { supabase } from "@/utils/supabase";
+import { useAuthStore } from "@/stores/authStore";
+import { supabase } from "@/stores/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -49,25 +49,19 @@ const EMPTY_FORM: CategoryForm = {
   limit_interval: "monthly",
 };
 
-const PRESET_COLORS = [
-  "#0EA5E9",
-  "#31C9A6",
-  "#E12E60",
-  "#EA9D2B",
-  "#8754EC",
-];
+const PRESET_COLORS = ["#0EA5E9", "#31C9A6", "#E12E60", "#EA9D2B", "#8754EC"];
 
 const PRESET_ICONS: { key: string; lib: "mci" | "ion" }[] = [
-  { key: "wallet",                lib: "mci" },
-  { key: "food",                  lib: "mci" },
-  { key: "car",                   lib: "mci" },
-  { key: "home",                  lib: "mci" },
-  { key: "gamepad-variant",       lib: "mci" },
-  { key: "airplane",              lib: "mci" },
-  { key: "pill",                  lib: "mci" },
-  { key: "book-open-variant",     lib: "mci" },
-  { key: "tshirt-crew",           lib: "mci" },
-  { key: "lightning-bolt",        lib: "mci" },
+  { key: "wallet", lib: "mci" },
+  { key: "food", lib: "mci" },
+  { key: "car", lib: "mci" },
+  { key: "home", lib: "mci" },
+  { key: "gamepad-variant", lib: "mci" },
+  { key: "airplane", lib: "mci" },
+  { key: "pill", lib: "mci" },
+  { key: "book-open-variant", lib: "mci" },
+  { key: "tshirt-crew", lib: "mci" },
+  { key: "lightning-bolt", lib: "mci" },
 ];
 
 const INTERVALS: Record<string, string> = {
@@ -197,7 +191,7 @@ export default function BudgetsScreen() {
             else fetchData();
           },
         },
-      ]
+      ],
     );
   };
 
@@ -345,7 +339,9 @@ export default function BudgetsScreen() {
                 color={Colors.neutral.gray300}
               />
               <Text style={styles.emptyText}>Sin categorias aun</Text>
-              <Text style={styles.emptySubtext}>Toca + para crear tu primera</Text>
+              <Text style={styles.emptySubtext}>
+                Toca + para crear tu primera
+              </Text>
             </View>
           }
           ListFooterComponent={<View style={{ height: 100 }} />}
@@ -400,7 +396,11 @@ export default function BudgetsScreen() {
               {editingId ? "Editar categoria" : "Nueva categoria"}
             </Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <AntDesign name="close" size={24} color={Colors.neutral.gray700} />
+              <AntDesign
+                name="close"
+                size={24}
+                color={Colors.neutral.gray700}
+              />
             </TouchableOpacity>
           </View>
 
@@ -434,7 +434,9 @@ export default function BudgetsScreen() {
                     <MaterialCommunityIcons
                       name={key as any}
                       size={26}
-                      color={form.icon === key ? form.color : Colors.neutral.gray400}
+                      color={
+                        form.icon === key ? form.color : Colors.neutral.gray400
+                      }
                     />
                   </TouchableOpacity>
                 ))}
@@ -475,7 +477,9 @@ export default function BudgetsScreen() {
               <ModalField
                 label="Limite (S/, opcional)"
                 value={form.limit_amount}
-                onChangeText={(v) => setForm((f) => ({ ...f, limit_amount: v }))}
+                onChangeText={(v) =>
+                  setForm((f) => ({ ...f, limit_amount: v }))
+                }
                 placeholder="0.00"
                 keyboardType="decimal-pad"
                 onFocus={scrollToEnd}
@@ -485,32 +489,34 @@ export default function BudgetsScreen() {
                 <>
                   <Text style={styles.fieldLabel}>Intervalo</Text>
                   <View style={styles.toggleRow}>
-                    {(["daily", "weekly", "monthly"] as const).map((interval) => (
-                      <TouchableOpacity
-                        key={interval}
-                        style={[
-                          styles.intervalButton,
-                          form.limit_interval === interval && {
-                            backgroundColor: form.color,
-                            borderColor: form.color,
-                          },
-                        ]}
-                        onPress={() =>
-                          setForm((f) => ({ ...f, limit_interval: interval }))
-                        }
-                      >
-                        <Text
+                    {(["daily", "weekly", "monthly"] as const).map(
+                      (interval) => (
+                        <TouchableOpacity
+                          key={interval}
                           style={[
-                            styles.intervalButtonText,
+                            styles.intervalButton,
                             form.limit_interval === interval && {
-                              color: "white",
+                              backgroundColor: form.color,
+                              borderColor: form.color,
                             },
                           ]}
+                          onPress={() =>
+                            setForm((f) => ({ ...f, limit_interval: interval }))
+                          }
                         >
-                          {INTERVALS[interval]}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                          <Text
+                            style={[
+                              styles.intervalButtonText,
+                              form.limit_interval === interval && {
+                                color: "white",
+                              },
+                            ]}
+                          >
+                            {INTERVALS[interval]}
+                          </Text>
+                        </TouchableOpacity>
+                      ),
+                    )}
                   </View>
                 </>
               ) : null}
