@@ -1,4 +1,3 @@
-import AvatarMenu from "@/components/AvatarMenu";
 import { Colors } from "@/constants/theme_test";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -30,7 +29,6 @@ export default function ProtectedLayout() {
         tabBarStyle: {
           borderTopWidth: 0.8,
         },
-        headerRight: () => <AvatarMenu />,
         tabBarInactiveTintColor: Colors.neutral.gray500,
         //tabBarActiveBackgroundColor: "teal",
       }}

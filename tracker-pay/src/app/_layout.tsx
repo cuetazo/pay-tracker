@@ -33,14 +33,6 @@ export default function RootLayout() {
         </Stack.Protected>
         <Stack.Protected guard={isLoggedIn}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="avatar-menu-modal"
-            options={{
-              presentation: "transparentModal",
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen name="modal" options={{ headerShown: false }} />
         </Stack.Protected>
       </Stack>
       <ModalWrapper />

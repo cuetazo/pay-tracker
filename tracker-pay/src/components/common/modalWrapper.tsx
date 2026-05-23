@@ -4,44 +4,71 @@ import React from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export const ModalWrapper = () => {
-  const { isVisible, component, closeModal } = useModal();
+  const { isVisible, component, closeModal, config } = useModal();
 
   if (!component || !isVisible) return null;
 
-  return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={isVisible}
-      onRequestClose={closeModal}
-    >
-      <View style={styles.centeredView}>
-        <TouchableOpacity
-          style={styles.overlay}
-          activeOpacity={1}
-          onPress={closeModal}
-        />
-        <View style={styles.modalView}>
-          <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-            <Text style={styles.closeText}>✕</Text>
-          </TouchableOpacity>
-          {typeof component === "string" ? (
-            <Text>{component}</Text>
-          ) : typeof component === "function" ? (
-            // component can be a component (function/class) — instantiate it
-            React.createElement(component as React.ComponentType)
-          ) : (
-            // component is assumed to be a React node (children)
-            component
-          )}
+  const modalType = config.type || "transparent";
+
+  // Renderizar componente
+  const renderComponent = () => {
+    if (typeof component === "string") {
+      return <Text>{component}</Text>;
+    } else if (typeof component === "function") {
+      return React.createElement(component as React.ComponentType);
+    } else {
+      return component;
+    }
+  };
+
+  // Modal transparente (centrado, pequeño)
+  if (modalType === "transparent") {
+    return (
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isVisible}
+        onRequestClose={closeModal}
+      >
+        <View style={styles.transparentContainer}>
+          <TouchableOpacity
+            style={styles.overlay}
+            activeOpacity={1}
+            onPress={closeModal}
+          />
+          <View style={styles.transparentView}>
+            <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+              <Text style={styles.closeText}>✕</Text>
+            </TouchableOpacity>
+            {renderComponent()}
+          </View>
         </View>
-      </View>
-    </Modal>
-  );
+      </Modal>
+    );
+  }
+
+  // Modal fullscreen (como pageSheet)
+  if (modalType === "fullscreen") {
+    return (
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={isVisible}
+        onRequestClose={closeModal}
+      >
+        <View style={styles.fullscreenContainer}>
+          {renderComponent()}
+        </View>
+      </Modal>
+    );
+  }
+
+  return null;
 };
 
 const styles = StyleSheet.create({
-  centeredView: {
+  // ─── Transparent Modal ──────────────────────────────────────────
+  transparentContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
@@ -54,7 +81,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  modalView: {
+  transparentView: {
     width: "80%",
     backgroundColor: "white",
     borderRadius: 20,
@@ -80,5 +107,10 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "bold",
     color: "#666",
+  },
+  // ─── Fullscreen Modal ───────────────────────────────────────────
+  fullscreenContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
   },
 });
