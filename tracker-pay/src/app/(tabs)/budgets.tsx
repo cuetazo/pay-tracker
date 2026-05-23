@@ -50,16 +50,12 @@ const EMPTY_FORM: CategoryForm = {
 
 const PRESET_COLORS = [
   "#0EA5E9",
-  "#10B981",
-  "#F43F5E",
-  "#F59E0B",
-  "#8B5CF6",
-  "#EC4899",
-  "#14B8A6",
-  "#F97316",
+  "#31C9A6",
+  "#E12E60",
+  "#EA9D2B",
+  "#8754EC",
 ];
 
-// MaterialCommunityIcons names for the icon picker
 const PRESET_ICONS: { key: string; lib: "mci" | "ion" }[] = [
   { key: "wallet",                lib: "mci" },
   { key: "food",                  lib: "mci" },
@@ -252,7 +248,7 @@ export default function BudgetsScreen() {
                   >
                     <MaterialCommunityIcons
                       name={(item.icon ?? "wallet") as any}
-                      size={22}
+                      size={26}
                       color={item.color ?? Colors.primary.main}
                     />
                   </View>
@@ -328,7 +324,7 @@ export default function BudgetsScreen() {
             <View style={styles.emptyState}>
               <MaterialCommunityIcons
                 name="piggy-bank-outline"
-                size={48}
+                size={56}
                 color={Colors.neutral.gray300}
               />
               <Text style={styles.emptyText}>Sin categorias aun</Text>
@@ -345,10 +341,13 @@ export default function BudgetsScreen() {
 
               {categories.length > 0 && (
                 <View style={styles.totalCard}>
+                  {/* Círculo decorativo */}
+                  <View style={styles.totalCardCircle} />
+
                   <View style={styles.totalCardIcon}>
                     <MaterialCommunityIcons
                       name="credit-card-outline"
-                      size={22}
+                      size={26}
                       color="#fff"
                     />
                   </View>
@@ -370,7 +369,7 @@ export default function BudgetsScreen() {
         onPress={openCreate}
         activeOpacity={0.85}
       >
-        <AntDesign name="plus" size={26} color="white" />
+        <AntDesign name="plus" size={28} color="white" />
       </TouchableOpacity>
 
       {/* ─── Modal ─────────────────────────────────────────────────── */}
@@ -385,7 +384,7 @@ export default function BudgetsScreen() {
               {editingId ? "Editar categoria" : "Nueva categoria"}
             </Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <AntDesign name="close" size={22} color={Colors.neutral.gray700} />
+              <AntDesign name="close" size={24} color={Colors.neutral.gray700} />
             </TouchableOpacity>
           </View>
 
@@ -411,7 +410,7 @@ export default function BudgetsScreen() {
                 >
                   <MaterialCommunityIcons
                     name={key as any}
-                    size={22}
+                    size={26}
                     color={form.icon === key ? form.color : Colors.neutral.gray400}
                   />
                 </TouchableOpacity>
@@ -493,7 +492,7 @@ export default function BudgetsScreen() {
             <TouchableOpacity
               style={[
                 styles.saveButton,
-                { backgroundColor: form.color },
+                { backgroundColor: "#1E82F4" },
                 saving && { opacity: 0.6 },
               ]}
               onPress={handleSave}
@@ -547,50 +546,62 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: Spacing.xl },
   listHeader: { paddingTop: Spacing.xl, paddingBottom: Spacing.lg },
   headerTitle: {
-    fontSize: FontSize.xxxl,
+    fontSize: FontSize.display,
     fontWeight: FontWeight.extrabold,
     color: Colors.neutral.gray900,
   },
   headerSubtitle: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     color: Colors.neutral.gray500,
     marginTop: Spacing.xs,
     marginBottom: Spacing.lg,
   },
   // ── Total card ──────────────────────────────────────────────────
   totalCard: {
-    backgroundColor: Colors.primary.main,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
+    backgroundColor: "#3282DE",
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,        // prueba subiendo/bajando este
+    height: 78,                 // altura fija de Figma
+    width: "100%",              // o 343 si quieres fijo
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
+    overflow: "hidden",
     ...Shadow.md,
   },
+  totalCardCircle: {
+    position: "absolute",
+    right: -30,
+    top: -50,
+    width: 128,
+    height: 128,
+    borderRadius: 100,
+    backgroundColor: "rgba(31, 43, 151, 0.1)",
+  },
   totalCardIcon: {
-    width: 44,
-    height: 44,
+    width: 52,
+    height: 52,
     borderRadius: BorderRadius.md,
     backgroundColor: "rgba(255,255,255,0.25)",
     justifyContent: "center",
     alignItems: "center",
   },
   totalCardLabel: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     color: "rgba(255,255,255,0.85)",
     marginBottom: 2,
   },
   totalCardValue: {
-    fontSize: FontSize.xxl,
+    fontSize: FontSize.xxxl,
     fontWeight: FontWeight.extrabold,
     color: Colors.neutral.white,
   },
   // ── Category card ───────────────────────────────────────────────
   categoryCard: {
     backgroundColor: Colors.neutral.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.xxl,
+    marginBottom: Spacing.lg,
     ...Shadow.md,
   },
   cardTop: {
@@ -599,8 +610,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   iconBg: {
-    width: 44,
-    height: 44,
+    width: 52,
+    height: 52,
     borderRadius: BorderRadius.md,
     justifyContent: "center",
     alignItems: "center",
@@ -608,32 +619,33 @@ const styles = StyleSheet.create({
   },
   cardInfo: { flex: 1 },
   categoryName: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray900,
   },
   categoryDesc: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.neutral.gray500,
     marginTop: 2,
   },
   cardAmounts: { alignItems: "flex-end" },
   spentAmount: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
     color: Colors.accent.income,
   },
   limitAmount: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.neutral.gray400,
     marginTop: 2,
   },
   progressTrack: {
-    height: 5,
+    height: 7,
     backgroundColor: Colors.neutral.gray100,
     borderRadius: BorderRadius.full,
     overflow: "hidden",
     marginBottom: Spacing.xs,
+    marginTop: Spacing.sm,
   },
   progressFill: {
     height: "100%",
@@ -644,28 +656,28 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   progressPct: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.neutral.gray500,
   },
   overBudgetText: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.accent.expense,
     fontWeight: FontWeight.semibold,
   },
   remainingText: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.neutral.gray500,
   },
   intervalChip: {
     alignSelf: "flex-start",
     backgroundColor: Colors.neutral.gray100,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: BorderRadius.full,
     marginTop: Spacing.sm,
   },
   intervalChipText: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.neutral.gray500,
   },
   emptyState: {
@@ -674,22 +686,22 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   emptyText: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray500,
   },
   emptySubtext: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     color: Colors.neutral.gray400,
   },
   fab: {
     position: "absolute",
     bottom: 24,
     right: 24,
-    width: 58,
-    height: 58,
+    width: 62,
+    height: 62,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary.main,
+    backgroundColor: "#1E82F4",
     justifyContent: "center",
     alignItems: "center",
     ...Shadow.lg,
@@ -700,22 +712,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xxl,
+    paddingVertical: Spacing.xl,
     borderBottomWidth: 1,
     borderBottomColor: Colors.neutral.gray100,
   },
   modalTitle: {
-    fontSize: FontSize.xl,
+    fontSize: FontSize.xxl,
     fontWeight: FontWeight.bold,
     color: Colors.neutral.gray900,
   },
   modalScroll: {
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.xxl,
     paddingTop: Spacing.lg,
   },
   fieldLabel: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray700,
     marginBottom: Spacing.sm,
@@ -727,13 +739,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.neutral.gray200,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.lg,
-    height: 50,
-    fontSize: FontSize.base,
+    height: 56,
+    fontSize: FontSize.md,
     color: Colors.neutral.gray900,
   },
   iconOption: {
-    width: 46,
-    height: 46,
+    width: 54,
+    height: 54,
     borderRadius: BorderRadius.md,
     borderWidth: 1.5,
     borderColor: Colors.neutral.gray200,
@@ -744,8 +756,8 @@ const styles = StyleSheet.create({
   },
   colorRow: { flexDirection: "row", gap: Spacing.md, flexWrap: "wrap" },
   colorDot: {
-    width: 34,
-    height: 34,
+    width: 40,
+    height: 40,
     borderRadius: BorderRadius.full,
   },
   colorDotSelected: {
@@ -755,7 +767,7 @@ const styles = StyleSheet.create({
   toggleRow: { flexDirection: "row", gap: Spacing.sm },
   intervalButton: {
     flex: 1,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.md,
     borderRadius: BorderRadius.sm,
     borderWidth: 1.5,
     borderColor: Colors.neutral.gray200,
@@ -763,12 +775,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.neutral.gray50,
   },
   intervalButtonText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray700,
   },
   saveButton: {
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.xl,
     borderRadius: BorderRadius.lg,
     alignItems: "center",
     marginTop: Spacing.xxl,
@@ -777,7 +789,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: Colors.neutral.white,
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
   },
 });
