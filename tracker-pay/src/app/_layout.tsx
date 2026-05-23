@@ -1,9 +1,10 @@
+import { ModalWrapper } from "@/components/common/modalWrapper";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useAuthStore } from "../utils/authStore";
+import { useAuthStore } from "../stores/authStore";
 
 export default function RootLayout() {
   const { silentSignIn, isLoggedIn, onboarding_complete } = useAuthStore();
@@ -39,8 +40,10 @@ export default function RootLayout() {
               headerShown: false,
             }}
           />
+          <Stack.Screen name="modal" options={{ headerShown: false }} />
         </Stack.Protected>
       </Stack>
+      <ModalWrapper />
     </GestureHandlerRootView>
   );
 }
