@@ -1,17 +1,26 @@
 import { useRouter } from "expo-router";
 import { create } from "zustand";
 
+export type ModalType = "transparent" | "fullscreen";
+
+export interface ModalConfig {
+  type?: ModalType;
+}
+
 interface ModalState {
   component: React.ReactNode | null;
   isVisible: boolean;
-  openModal: (content: React.ReactNode) => void;
+  config: ModalConfig;
+  openModal: (content: React.ReactNode, config?: ModalConfig) => void;
   closeModal: () => void;
 }
 
 export const useModal = create<ModalState>((set) => ({
   component: null,
   isVisible: false,
-  openModal: (content) => set({ isVisible: true, component: content }),
+  config: { type: "transparent" },
+  openModal: (content, config = { type: "transparent" }) =>
+    set({ isVisible: true, component: content, config }),
   closeModal: () => set({ isVisible: false, component: null }),
 }));
 
@@ -21,13 +30,13 @@ export const useModalNavigation = () => {
   const { openModal: openModalStore, closeModal: closeModalStore } = useModal();
 
   return {
-    openModal: (content: string | React.ReactNode) => {
+    openModal: (content: string | React.ReactNode, config?: ModalConfig) => {
       if (typeof content === "string") {
         // Es una ruta del router - usar navigate con cast para evitar validación de tipos
         router.navigate(`/modal/${content}` as any);
       } else {
         // Es un componente React
-        openModalStore(content);
+        openModalStore(content, config);
       }
     },
     closeModal: () => {

@@ -1,4 +1,4 @@
-import { useModalNavigation } from "@/stores/modalStore";
+import { useModalNavigation, type ModalConfig } from "@/stores/modalStore";
 
 export const useModal = () => {
   const { openModal, closeModal } = useModalNavigation();
@@ -6,8 +6,12 @@ export const useModal = () => {
   return {
     openModal,
     closeModal,
-    openWithDelay: (content: string | React.ReactNode, delay: number = 300) => {
-      setTimeout(() => openModal(content), delay);
+    openWithDelay: (
+      content: string | React.ReactNode,
+      delay: number = 300,
+      config?: ModalConfig,
+    ) => {
+      setTimeout(() => openModal(content, config), delay);
     },
   };
 };
