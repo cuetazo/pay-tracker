@@ -12,13 +12,14 @@ import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -84,6 +85,9 @@ export default function BudgetsScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CategoryForm>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+
+  // Ref para el ScrollView del modal
+  const scrollRef = useRef<ScrollView>(null);
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -200,6 +204,19 @@ export default function BudgetsScreen() {
   // ─── Totals ───────────────────────────────────────────────────────────────
   const totalBudget = categories.reduce((s, c) => s + (c.limit_amount ?? 0), 0);
   const totalSpent = categories.reduce((s, c) => s + spentForCategory(c.id), 0);
+
+  // ─── Scroll helpers ───────────────────────────────────────────────────────
+  const scrollToEnd = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+  };
+
+  const scrollToY = (y: number) => {
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y, animated: true });
+    }, 150);
+  };
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -341,9 +358,7 @@ export default function BudgetsScreen() {
 
               {categories.length > 0 && (
                 <View style={styles.totalCard}>
-                  {/* Círculo decorativo */}
                   <View style={styles.totalCardCircle} />
-
                   <View style={styles.totalCardIcon}>
                     <MaterialCommunityIcons
                       name="credit-card-outline"
@@ -377,6 +392,7 @@ export default function BudgetsScreen() {
         visible={modalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
@@ -388,125 +404,136 @@ export default function BudgetsScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            style={styles.modalScroll}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ flex: 1 }}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
           >
-            {/* Icon picker */}
-            <Text style={styles.fieldLabel}>Icono</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {PRESET_ICONS.map(({ key }) => (
-                <TouchableOpacity
-                  key={key}
-                  style={[
-                    styles.iconOption,
-                    form.icon === key && {
-                      backgroundColor: form.color + "22",
-                      borderColor: form.color,
-                    },
-                  ]}
-                  onPress={() => setForm((f) => ({ ...f, icon: key }))}
-                >
-                  <MaterialCommunityIcons
-                    name={key as any}
-                    size={26}
-                    color={form.icon === key ? form.color : Colors.neutral.gray400}
+            <ScrollView
+              ref={scrollRef}
+              style={styles.modalScroll}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: Spacing.xxxl * 3 }}
+            >
+              {/* Icon picker */}
+              <Text style={styles.fieldLabel}>Icono</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {PRESET_ICONS.map(({ key }) => (
+                  <TouchableOpacity
+                    key={key}
+                    style={[
+                      styles.iconOption,
+                      form.icon === key && {
+                        backgroundColor: form.color + "22",
+                        borderColor: form.color,
+                      },
+                    ]}
+                    onPress={() => setForm((f) => ({ ...f, icon: key }))}
+                  >
+                    <MaterialCommunityIcons
+                      name={key as any}
+                      size={26}
+                      color={form.icon === key ? form.color : Colors.neutral.gray400}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Color picker */}
+              <Text style={styles.fieldLabel}>Color</Text>
+              <View style={styles.colorRow}>
+                {PRESET_COLORS.map((c) => (
+                  <TouchableOpacity
+                    key={c}
+                    style={[
+                      styles.colorDot,
+                      { backgroundColor: c },
+                      form.color === c && styles.colorDotSelected,
+                    ]}
+                    onPress={() => setForm((f) => ({ ...f, color: c }))}
                   />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                ))}
+              </View>
 
-            {/* Color picker */}
-            <Text style={styles.fieldLabel}>Color</Text>
-            <View style={styles.colorRow}>
-              {PRESET_COLORS.map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  style={[
-                    styles.colorDot,
-                    { backgroundColor: c },
-                    form.color === c && styles.colorDotSelected,
-                  ]}
-                  onPress={() => setForm((f) => ({ ...f, color: c }))}
-                />
-              ))}
-            </View>
+              <ModalField
+                label="Nombre *"
+                value={form.name}
+                onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
+                placeholder="ej. Alimentacion"
+                onFocus={() => scrollToY(0)}
+              />
 
-            <ModalField
-              label="Nombre *"
-              value={form.name}
-              onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
-              placeholder="ej. Alimentacion"
-            />
+              <ModalField
+                label="Descripcion (opcional)"
+                value={form.description}
+                onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
+                placeholder="ej. Comida y supermercado"
+                onFocus={() => scrollToY(100)}
+              />
 
-            <ModalField
-              label="Descripcion (opcional)"
-              value={form.description}
-              onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
-              placeholder="ej. Comida y supermercado"
-            />
+              <ModalField
+                label="Limite (S/, opcional)"
+                value={form.limit_amount}
+                onChangeText={(v) => setForm((f) => ({ ...f, limit_amount: v }))}
+                placeholder="0.00"
+                keyboardType="decimal-pad"
+                onFocus={scrollToEnd}
+              />
 
-            <ModalField
-              label="Limite (S/, opcional)"
-              value={form.limit_amount}
-              onChangeText={(v) => setForm((f) => ({ ...f, limit_amount: v }))}
-              placeholder="0.00"
-              keyboardType="decimal-pad"
-            />
-
-            {form.limit_amount ? (
-              <>
-                <Text style={styles.fieldLabel}>Intervalo</Text>
-                <View style={styles.toggleRow}>
-                  {(["daily", "weekly", "monthly"] as const).map((interval) => (
-                    <TouchableOpacity
-                      key={interval}
-                      style={[
-                        styles.intervalButton,
-                        form.limit_interval === interval && {
-                          backgroundColor: form.color,
-                          borderColor: form.color,
-                        },
-                      ]}
-                      onPress={() =>
-                        setForm((f) => ({ ...f, limit_interval: interval }))
-                      }
-                    >
-                      <Text
+              {form.limit_amount ? (
+                <>
+                  <Text style={styles.fieldLabel}>Intervalo</Text>
+                  <View style={styles.toggleRow}>
+                    {(["daily", "weekly", "monthly"] as const).map((interval) => (
+                      <TouchableOpacity
+                        key={interval}
                         style={[
-                          styles.intervalButtonText,
+                          styles.intervalButton,
                           form.limit_interval === interval && {
-                            color: "white",
+                            backgroundColor: form.color,
+                            borderColor: form.color,
                           },
                         ]}
+                        onPress={() =>
+                          setForm((f) => ({ ...f, limit_interval: interval }))
+                        }
                       >
-                        {INTERVALS[interval]}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            ) : null}
+                        <Text
+                          style={[
+                            styles.intervalButtonText,
+                            form.limit_interval === interval && {
+                              color: "white",
+                            },
+                          ]}
+                        >
+                          {INTERVALS[interval]}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              ) : null}
 
-            <TouchableOpacity
-              style={[
-                styles.saveButton,
-                { backgroundColor: "#1E82F4" },
-                saving && { opacity: 0.6 },
-              ]}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.saveButtonText}>
-                  {editingId ? "Guardar cambios" : "Crear categoria"}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </ScrollView>
+              <TouchableOpacity
+                style={[
+                  styles.saveButton,
+                  { backgroundColor: "#1E82F4" },
+                  saving && { opacity: 0.6 },
+                ]}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.saveButtonText}>
+                    {editingId ? "Guardar cambios" : "Crear categoria"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </View>
@@ -519,12 +546,14 @@ function ModalField({
   onChangeText,
   placeholder,
   keyboardType = "default",
+  onFocus,
 }: {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
   keyboardType?: "default" | "decimal-pad";
+  onFocus?: () => void;
 }) {
   return (
     <>
@@ -536,6 +565,7 @@ function ModalField({
         placeholder={placeholder}
         placeholderTextColor={Colors.neutral.gray400}
         keyboardType={keyboardType}
+        onFocus={onFocus}
       />
     </>
   );
@@ -560,9 +590,9 @@ const styles = StyleSheet.create({
   totalCard: {
     backgroundColor: "#3282DE",
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,        // prueba subiendo/bajando este
-    height: 78,                 // altura fija de Figma
-    width: "100%",              // o 343 si quieres fijo
+    padding: Spacing.lg,
+    height: 78,
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.md,
@@ -601,7 +631,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.neutral.white,
     borderRadius: BorderRadius.md,
     padding: Spacing.xxl,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
     ...Shadow.md,
   },
   cardTop: {
