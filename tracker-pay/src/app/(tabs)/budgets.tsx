@@ -11,56 +11,21 @@ import {
 import { useModal } from "@/hooks/useModal";
 import { Database } from "@/services/db/schema";
 import { useAuthStore } from "@/stores/authStore";
+import { useDataStore } from "@/stores/dataStore";
 import { supabase } from "@/stores/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
 type Category = Database["public"]["Tables"]["category"]["Row"];
-type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
-
-type CategoryForm = {
-  name: string;
-  description: string;
-  icon: string;
-  color: string;
-  limit_amount: string;
-  limit_interval: "monthly" | "weekly" | "daily";
-};
-
-const EMPTY_FORM: CategoryForm = {
-  name: "",
-  description: "",
-  icon: "wallet",
-  color: Colors.primary.main,
-  limit_amount: "",
-  limit_interval: "monthly",
-};
-
-const PRESET_COLORS = ["#0EA5E9", "#31C9A6", "#E12E60", "#EA9D2B", "#8754EC"];
-
-const PRESET_ICONS: { key: string; lib: "mci" | "ion" }[] = [
-  { key: "wallet", lib: "mci" },
-  { key: "food", lib: "mci" },
-  { key: "car", lib: "mci" },
-  { key: "home", lib: "mci" },
-  { key: "gamepad-variant", lib: "mci" },
-  { key: "airplane", lib: "mci" },
-  { key: "pill", lib: "mci" },
-  { key: "book-open-variant", lib: "mci" },
-  { key: "tshirt-crew", lib: "mci" },
-  { key: "lightning-bolt", lib: "mci" },
-];
 
 const INTERVALS: Record<string, string> = {
   daily: "Diario",
@@ -69,55 +34,29 @@ const INTERVALS: Record<string, string> = {
 };
 
 export default function BudgetsScreen() {
-  const { user } = useAuthStore();
   const { openModal } = useModal();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { refreshData } = useAuthStore();
+  const { categories, transactions, loadingCategories } = useDataStore();
 
-  // ─── Fetch ────────────────────────────────────────────────────────────────
-  const fetchData = useCallback(async () => {
-    if (!user?.id) return;
-    setLoading(true);
-
-    const [catRes, txRes] = await Promise.all([
-      supabase.from("category").select("*").eq("userId", user.id),
-      supabase
-        .from("transactions")
-        .select("*")
-        .eq("userId", user.id)
-        .eq("type", "expense"),
-    ]);
-
-    if (catRes.data) setCategories(catRes.data);
-    if (txRes.data) setTransactions(txRes.data);
-    setLoading(false);
-  }, [user?.id]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // ─── Helpers ─────────────────────────────────────────────────────────────
   const spentForCategory = (catId: string) =>
     transactions
-      .filter((t) => t.categoryId === catId)
+      .filter((t) => t.categoryId === catId && t.type === "expense")
       .reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
   const fmt = (n: number) =>
     `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2 })}`;
 
-  // ─── CRUD ────────────────────────────────────────────────────────────────
   const openCreate = () => {
-    openModal(<CategoryFormModal onSaveSuccess={fetchData} />, {
+    openModal(<CategoryFormModal onSaveSuccess={refreshData} />, {
       type: "fullscreen",
     });
   };
 
   const openEdit = (cat: Category) => {
-    openModal(<CategoryFormModal category={cat} onSaveSuccess={fetchData} />, {
-      type: "fullscreen",
-    });
+    openModal(
+      <CategoryFormModal category={cat} onSaveSuccess={refreshData} />,
+      { type: "fullscreen" },
+    );
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -135,21 +74,18 @@ export default function BudgetsScreen() {
               .delete()
               .eq("id", id);
             if (error) Alert.alert("Error", error.message);
-            else fetchData();
+            else refreshData();
           },
         },
       ],
     );
   };
 
-  // ─── Totals ───────────────────────────────────────────────────────────────
-  const totalBudget = categories.reduce((s, c) => s + (c.limit_amount ?? 0), 0);
   const totalSpent = categories.reduce((s, c) => s + spentForCategory(c.id), 0);
 
-  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <View style={styles.safeArea}>
-      {loading ? (
+      {loadingCategories && categories.length === 0 ? (
         <ActivityIndicator
           size="large"
           color={Colors.primary.main}
@@ -285,7 +221,6 @@ export default function BudgetsScreen() {
               <Text style={styles.headerSubtitle}>
                 Gestiona tus categorias de gastos
               </Text>
-
               {categories.length > 0 && (
                 <View style={styles.totalCard}>
                   <View style={styles.totalCardCircle} />
@@ -307,8 +242,6 @@ export default function BudgetsScreen() {
           contentContainerStyle={styles.listContent}
         />
       )}
-
-      {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
         onPress={openCreate}
@@ -317,37 +250,6 @@ export default function BudgetsScreen() {
         <AntDesign name="plus" size={28} color="white" />
       </TouchableOpacity>
     </View>
-  );
-}
-
-function ModalField({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  keyboardType = "default",
-  onFocus,
-}: {
-  label: string;
-  value: string;
-  onChangeText: (v: string) => void;
-  placeholder?: string;
-  keyboardType?: "default" | "decimal-pad";
-  onFocus?: () => void;
-}) {
-  return (
-    <>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        style={styles.textInput}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={Colors.neutral.gray400}
-        keyboardType={keyboardType}
-        onFocus={onFocus}
-      />
-    </>
   );
 }
 
@@ -366,7 +268,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     marginBottom: Spacing.lg,
   },
-  // ── Total card ──────────────────────────────────────────────────
   totalCard: {
     backgroundColor: "#3282DE",
     borderRadius: BorderRadius.md,
@@ -406,7 +307,6 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.extrabold,
     color: Colors.neutral.white,
   },
-  // ── Category card ───────────────────────────────────────────────
   categoryCard: {
     backgroundColor: Colors.neutral.white,
     borderRadius: BorderRadius.md,
@@ -457,27 +357,15 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
     marginTop: Spacing.sm,
   },
-  progressFill: {
-    height: "100%",
-    borderRadius: BorderRadius.full,
-  },
-  progressLabels: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  progressPct: {
-    fontSize: FontSize.sm,
-    color: Colors.neutral.gray500,
-  },
+  progressFill: { height: "100%", borderRadius: BorderRadius.full },
+  progressLabels: { flexDirection: "row", justifyContent: "space-between" },
+  progressPct: { fontSize: FontSize.sm, color: Colors.neutral.gray500 },
   overBudgetText: {
     fontSize: FontSize.sm,
     color: Colors.accent.expense,
     fontWeight: FontWeight.semibold,
   },
-  remainingText: {
-    fontSize: FontSize.sm,
-    color: Colors.neutral.gray500,
-  },
+  remainingText: { fontSize: FontSize.sm, color: Colors.neutral.gray500 },
   intervalChip: {
     alignSelf: "flex-start",
     backgroundColor: Colors.neutral.gray100,
@@ -486,10 +374,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     marginTop: Spacing.sm,
   },
-  intervalChipText: {
-    fontSize: FontSize.sm,
-    color: Colors.neutral.gray500,
-  },
+  intervalChipText: { fontSize: FontSize.sm, color: Colors.neutral.gray500 },
   emptyState: {
     alignItems: "center",
     paddingVertical: Spacing.xxxl * 2,
@@ -500,10 +385,7 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray500,
   },
-  emptySubtext: {
-    fontSize: FontSize.md,
-    color: Colors.neutral.gray400,
-  },
+  emptySubtext: { fontSize: FontSize.md, color: Colors.neutral.gray400 },
   fab: {
     position: "absolute",
     bottom: 24,
@@ -515,91 +397,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     ...Shadow.lg,
-  },
-  // ── Modal ───────────────────────────────────────────────────────
-  modalContainer: { flex: 1, backgroundColor: Colors.primary.background },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.xl,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.neutral.gray100,
-  },
-  modalTitle: {
-    fontSize: FontSize.xxl,
-    fontWeight: FontWeight.bold,
-    color: Colors.neutral.gray900,
-  },
-  modalScroll: {
-    paddingHorizontal: Spacing.xxl,
-    paddingTop: Spacing.lg,
-  },
-  fieldLabel: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray700,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.lg,
-  },
-  textInput: {
-    backgroundColor: Colors.neutral.gray50,
-    borderWidth: 1.5,
-    borderColor: Colors.neutral.gray200,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.lg,
-    height: 56,
-    fontSize: FontSize.md,
-    color: Colors.neutral.gray900,
-  },
-  iconOption: {
-    width: 54,
-    height: 54,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.neutral.gray200,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: Spacing.sm,
-    backgroundColor: Colors.neutral.white,
-  },
-  colorRow: { flexDirection: "row", gap: Spacing.md, flexWrap: "wrap" },
-  colorDot: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.full,
-  },
-  colorDotSelected: {
-    borderWidth: 3,
-    borderColor: Colors.neutral.gray900,
-  },
-  toggleRow: { flexDirection: "row", gap: Spacing.sm },
-  intervalButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1.5,
-    borderColor: Colors.neutral.gray200,
-    alignItems: "center",
-    backgroundColor: Colors.neutral.gray50,
-  },
-  intervalButtonText: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray700,
-  },
-  saveButton: {
-    paddingVertical: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-    alignItems: "center",
-    marginTop: Spacing.xxl,
-    marginBottom: Spacing.xxxl,
-    ...Shadow.md,
-  },
-  saveButtonText: {
-    color: Colors.neutral.white,
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.semibold,
   },
 });

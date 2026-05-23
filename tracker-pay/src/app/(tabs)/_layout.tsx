@@ -1,5 +1,5 @@
 import { Colors } from "@/constants/theme_test";
-import Entypo from "@expo/vector-icons/Entypo";
+import { MaterialIcons } from "@expo/vector-icons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -66,9 +66,9 @@ export default function ProtectedLayout() {
         name="fourth"
         options={{
           //headerStyle: styles.container,
-          title: "Fourth",
+          title: "Cuenta",
           tabBarIcon: ({ color, size }) => (
-            <Entypo name="credit-card" size={24} color={color} />
+            <MaterialIcons name="account-circle" size={24} color={color} />
           ),
         }}
       />
