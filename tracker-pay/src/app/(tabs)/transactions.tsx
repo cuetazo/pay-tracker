@@ -294,155 +294,177 @@ export default function TransactionsScreen() {
       </TouchableOpacity>
 
       {/* ─── Modal ─────────────────────────────────────────────────── */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setModalVisible(false)}
+        <Modal
+  visible={modalVisible}
+  animationType="slide"
+  transparent
+  onRequestClose={() => setModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalContainer}>
+      {/* Header */}
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>
+          {editingId ? "Editar transacción" : "Nueva transaccion"}
+        </Text>
+
+        <TouchableOpacity onPress={() => setModalVisible(false)}>
+          <AntDesign
+            name="close"
+            size={24}
+            color={Colors.neutral.gray500}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {editingId ? "Editar transacción" : "Nueva transacción"}
-            </Text>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <AntDesign
-                name="close"
-                size={22}
-                color={Colors.neutral.gray700}
-              />
-            </TouchableOpacity>
-          </View>
+        {/* Toggle */}
+        <View style={styles.toggleContainer}>
+          {(["expense", "income"] as const).map((t) => {
+            const isSelected = form.type === t;
 
-          <ScrollView
-            style={styles.modalScroll}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Type toggle */}
-            <Text style={styles.fieldLabel}>Tipo</Text>
-            <View style={styles.toggleRow}>
-              {(["expense", "income"] as const).map((t) => (
-                <TouchableOpacity
-                  key={t}
+            return (
+              <TouchableOpacity
+                key={t}
+                activeOpacity={0.8}
+                style={[
+                  styles.toggleButton,
+                  isSelected && {
+                    backgroundColor:
+                      t === "expense"
+                        ? "#E91E63" // rojo gasto
+                        : "#22C55E", // verde ingreso
+                  },
+                ]}
+                onPress={() =>
+                  setForm((f) => ({
+                    ...f,
+                    type: t,
+                    categoryId: "",
+                  }))
+                }
+              >
+                <Text
                   style={[
-                    styles.toggleButton,
-                    form.type === t && {
-                      backgroundColor:
-                        t === "expense"
-                          ? Colors.accent.expense
-                          : Colors.accent.income,
-                    },
+                    styles.toggleButtonText,
+                    isSelected && { color: "#fff" },
                   ]}
-                  onPress={() => {
-                    setForm((f) => ({ ...f, type: t, categoryId: "" }));
-                  }}
                 >
-                  <Text
+                  {t === "expense" ? "Gasto" : "Ingreso"}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Inputs */}
+        <Field
+          label="Monto"
+          keyboardType="decimal-pad"
+          value={form.amount}
+          onChangeText={(v) => setForm((f) => ({ ...f, amount: v }))}
+          placeholder="S/ 0.00"
+        />
+
+        <Field
+          label="Destinatario / Descripcion"
+          value={form.destinatary}
+          onChangeText={(v) => setForm((f) => ({ ...f, destinatary: v }))}
+          placeholder="ej. Supermercado"
+        />
+
+        <Field
+          label="Origen (opcional)"
+          value={form.origin}
+          onChangeText={(v) => setForm((f) => ({ ...f, origin: v }))}
+          placeholder="ej. Supermercado"
+        />
+
+        {/* Categorías */}
+        {filteredCategories.length > 0 && (
+          <>
+            <Text style={styles.fieldLabel}>Categoria</Text>
+
+            <View style={styles.categoriesContainer}>
+              {filteredCategories.map((cat) => {
+                const selected = form.categoryId === cat.id;
+
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
                     style={[
-                      styles.toggleButtonText,
-                      form.type === t && { color: "white" },
+                      styles.categoryChip,
+                      selected && {
+                        backgroundColor:
+                          form.type === "expense"
+                            ? "#FCE7F3"
+                            : "#DCFCE7",
+                        borderColor:
+                          form.type === "expense"
+                            ? "#E91E63"
+                            : "#22C55E",
+                      },
                     ]}
+                    onPress={() =>
+                      setForm((f) => ({
+                        ...f,
+                        categoryId:
+                          f.categoryId === cat.id ? "" : cat.id,
+                      }))
+                    }
                   >
-                    {t === "expense" ? "Gasto" : "Ingreso"}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Field
-              label="Monto (S/)"
-              keyboardType="decimal-pad"
-              value={form.amount}
-              onChangeText={(v) => setForm((f) => ({ ...f, amount: v }))}
-              placeholder="0.00"
-            />
-
-            <Field
-              label="Destinatario / Descripción"
-              value={form.destinatary}
-              onChangeText={(v) => setForm((f) => ({ ...f, destinatary: v }))}
-              placeholder="ej. Supermercado"
-            />
-
-            <Field
-              label="Origen (opcional)"
-              value={form.origin}
-              onChangeText={(v) => setForm((f) => ({ ...f, origin: v }))}
-              placeholder="ej. Banco, Efectivo"
-            />
-
-            {/* Category picker - Mostrar solo si hay categorías del tipo seleccionado */}
-            {filteredCategories.length > 0 && (
-              <>
-                <Text style={styles.fieldLabel}>Categoría</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.categoryScroll}
-                >
-                  {filteredCategories.map((cat) => (
-                    <TouchableOpacity
-                      key={cat.id}
+                    <Text
                       style={[
-                        styles.categoryChip,
-                        form.categoryId === cat.id && {
-                          backgroundColor: cat.color ?? Colors.primary.main,
-                          borderColor: cat.color ?? Colors.primary.main,
+                        styles.categoryChipText,
+                        selected && {
+                          color:
+                            form.type === "expense"
+                              ? "#E91E63"
+                              : "#22C55E",
                         },
                       ]}
-                      onPress={() =>
-                        setForm((f) => ({
-                          ...f,
-                          categoryId: f.categoryId === cat.id ? "" : cat.id,
-                        }))
-                      }
                     >
-                      <Text
-                        style={[
-                          styles.categoryChipText,
-                          form.categoryId === cat.id && { color: "white" },
-                        ]}
-                      >
-                        {cat.icon} {cat.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </>
-            )}
+                      {cat.icon} {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        )}
 
-            {/* Mensaje si no hay categorías */}
-            {filteredCategories.length === 0 && categories.length > 0 && (
-              <View style={styles.noCategoriesMessage}>
-                <MaterialCommunityIcons
-                  name="folder-open"
-                  size={24}
-                  color={Colors.neutral.gray400}
-                />
-                <Text style={styles.noCategoriesText}>
-                  No hay categorías para{" "}
-                  {form.type === "expense" ? "gastos" : "ingresos"}
-                </Text>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={[styles.saveButton, saving && { opacity: 0.6 }]}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.saveButtonText}>
-                  {editingId ? "Guardar cambios" : "Agregar transacción"}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </Modal>
+        {/* Botón */}
+        <TouchableOpacity
+          style={[
+            styles.saveButton,
+            {
+              backgroundColor:
+                form.type === "expense"
+                  ? "#2F80ED"
+                  : "#22C55E",
+            },
+            saving && { opacity: 0.7 },
+          ]}
+          onPress={handleSave}
+          disabled={saving}
+        >
+          {saving ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.saveButtonText}>
+              {editingId
+                ? "Guardar cambios"
+                : "Agregar transaccion"}
+            </Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  </View>
+</Modal>
     </View>
   );
 }
@@ -498,10 +520,28 @@ const styles = StyleSheet.create({
     fontSize: FontSize.display,
     fontWeight: FontWeight.bold,
   },
+    modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    justifyContent: "center",
+    padding: 12,
+  },
+    toggleContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 22,
+  },
   summaryRow: {
     flexDirection: "row",
     gap: Spacing.md,
     marginBottom: Spacing.xxl,
+  },
+    categoriesContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginTop: 6,
+    marginBottom: 24,
   },
   listHeader: {
     flexDirection: "row",
