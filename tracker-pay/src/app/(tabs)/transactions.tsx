@@ -13,10 +13,10 @@ import {
 import { useModal } from "@/hooks/useModal";
 import { Database } from "@/services/db/schema";
 import { useAuthStore } from "@/stores/authStore";
+import { useDataStore } from "@/stores/dataStore";
 import { supabase } from "@/stores/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -28,46 +28,18 @@ import {
 } from "react-native";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
-type Category = Database["public"]["Tables"]["category"]["Row"];
 
 export default function TransactionsScreen() {
-  const { user } = useAuthStore();
   const { openModal } = useModal();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { refreshData } = useAuthStore();
+  const { transactions, categories, loadingTransactions } = useDataStore();
 
-  // ─── Fetch ────────────────────────────────────────────────────────────────
-  const fetchData = useCallback(async () => {
-    if (!user?.id) return;
-    setLoading(true);
-
-    const [txRes, catRes] = await Promise.all([
-      supabase
-        .from("transactions")
-        .select("*")
-        .eq("userId", user.id)
-        .order("created_at", { ascending: false }),
-      supabase.from("category").select("*").eq("userId", user.id),
-    ]);
-
-    if (txRes.data) setTransactions(txRes.data);
-    if (catRes.data) setCategories(catRes.data);
-    setLoading(false);
-  }, [user?.id]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // ─── CRUD ─────────────────────────────────────────────────────────────────
   const openCreate = () => {
     openModal(
-      <TransactionFormModal
-        categories={categories}
-        onSaveSuccess={fetchData}
-      />,
-      { type: "fullscreen" },
+      <TransactionFormModal onSaveSuccess={refreshData} categories={[]} />,
+      {
+        type: "fullscreen",
+      },
     );
   };
 
@@ -75,8 +47,8 @@ export default function TransactionsScreen() {
     openModal(
       <TransactionFormModal
         transaction={transaction}
+        onSaveSuccess={refreshData}
         categories={categories}
-        onSaveSuccess={fetchData}
       />,
       { type: "fullscreen" },
     );
@@ -97,34 +69,27 @@ export default function TransactionsScreen() {
               .delete()
               .eq("id", id);
             if (error) Alert.alert("Error", error.message);
-            else fetchData();
+            else refreshData();
           },
         },
       ],
     );
   };
 
-  // ─── Totals ───────────────────────────────────────────────────────────────
   const totalIncome = transactions
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + (t.amount ?? 0), 0);
-
   const totalExpense = transactions
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + (t.amount ?? 0), 0);
-
   const totalBalance = totalIncome - totalExpense;
 
   const fmt = (n: number) =>
-    `S/ ${n.toLocaleString("es-PE", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
+    `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <View style={styles.safeArea}>
-      {loading ? (
+      {loadingTransactions && transactions.length === 0 ? (
         <ActivityIndicator
           size="large"
           color={Colors.primary.main}
@@ -187,8 +152,6 @@ export default function TransactionsScreen() {
           ListHeaderComponent={
             <View style={styles.listHeader}>
               <Text style={styles.pageTitle}>Transacciones</Text>
-
-              {/* Balance card */}
               <View style={styles.balanceCard}>
                 <View style={styles.balanceCardDecorCircle} />
                 <View style={styles.balanceCardIcon}>
@@ -204,7 +167,6 @@ export default function TransactionsScreen() {
                 </View>
               </View>
 
-              {/* Section label */}
               <View style={styles.sectionRow}>
                 <Text style={styles.sectionTitle}>Últimas transacciones</Text>
                 <Text style={styles.sectionCount}>
@@ -216,8 +178,6 @@ export default function TransactionsScreen() {
           contentContainerStyle={styles.listContent}
         />
       )}
-
-      {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
         onPress={openCreate}
@@ -233,16 +193,12 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.primary.background },
   listContent: { paddingHorizontal: Spacing.xl },
   listHeader: { paddingTop: Spacing.xl, paddingBottom: Spacing.sm },
-
-  // ── Page title ──────────────────────────────────────────────────
   pageTitle: {
     fontSize: FontSize.display,
     fontWeight: FontWeight.extrabold,
     color: Colors.neutral.gray900,
     marginBottom: Spacing.lg,
   },
-
-  // ── Balance card ─────────────────────────────────────────────────
   balanceCard: {
     backgroundColor: "#3282DE",
     borderRadius: BorderRadius.xl,
@@ -281,8 +237,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xxxl,
     fontWeight: FontWeight.extrabold,
   },
-
-  // ── Summary row ──────────────────────────────────────────────────
   summaryRow: {
     flexDirection: "row",
     gap: Spacing.md,
@@ -310,12 +264,7 @@ const styles = StyleSheet.create({
     color: Colors.neutral.gray500,
     marginBottom: 2,
   },
-  summaryCardValue: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.bold,
-  },
-
-  // ── Section header ───────────────────────────────────────────────
+  summaryCardValue: { fontSize: FontSize.md, fontWeight: FontWeight.bold },
   sectionRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -327,12 +276,7 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray900,
   },
-  sectionCount: {
-    fontSize: FontSize.sm,
-    color: Colors.neutral.gray400,
-  },
-
-  // ── Empty ────────────────────────────────────────────────────────
+  sectionCount: { fontSize: FontSize.sm, color: Colors.neutral.gray400 },
   emptyState: {
     alignItems: "center",
     paddingVertical: Spacing.xxxl * 2,
@@ -344,8 +288,6 @@ const styles = StyleSheet.create({
     color: Colors.neutral.gray500,
   },
   emptySubtext: { fontSize: FontSize.md, color: Colors.neutral.gray400 },
-
-  // ── FAB ──────────────────────────────────────────────────────────
   fab: {
     position: "absolute",
     bottom: 24,

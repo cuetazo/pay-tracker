@@ -9,6 +9,7 @@ import { Session } from "@supabase/supabase-js";
 import { deleteItemAsync, getItem, setItem } from "expo-secure-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { useDataStore } from "./dataStore";
 import { supabase } from "./supabase";
 
 type User = {
@@ -32,6 +33,7 @@ type UserState = {
   SignIn: () => Promise<void>;
   SignOut: () => Promise<void>;
   checkOnboarding: () => Promise<void>;
+  refreshData: () => Promise<void>;
 };
 
 export const useAuthStore = create<UserState>()(
@@ -42,6 +44,11 @@ export const useAuthStore = create<UserState>()(
       isLoading: true,
       user: null,
       session: null,
+
+      // Single entry point to refresh all shared data across screens
+      refreshData: async () => {
+        await useDataStore.getState().fetchAll();
+      },
 
       checkOnboarding: async () => {
         const {
@@ -59,7 +66,6 @@ export const useAuthStore = create<UserState>()(
           console.error("Error fetching profile:", error);
           return;
         }
-
         set({ onboarding_complete: data?.onboarding_completed ?? false });
       },
 
@@ -72,7 +78,6 @@ export const useAuthStore = create<UserState>()(
           } = await supabase.auth.getSession();
 
           if (session) {
-            console.log("Sesión existente encontrada:", session.user.id);
             set({
               session,
               isLoggedIn: true,
@@ -88,6 +93,8 @@ export const useAuthStore = create<UserState>()(
               },
             });
             await get().checkOnboarding();
+            // Hydrate all screens after session is confirmed
+            await get().refreshData();
             set({ isLoading: false });
             return;
           }
@@ -103,7 +110,6 @@ export const useAuthStore = create<UserState>()(
             if (error) throw error;
 
             if (data.session) {
-              console.log("Nueva sesión creada:", data.user.id);
               set({
                 session: data.session,
                 isLoggedIn: true,
@@ -117,6 +123,7 @@ export const useAuthStore = create<UserState>()(
                 },
               });
               await get().checkOnboarding();
+              await get().refreshData();
             }
           } else {
             set({ isLoggedIn: false, user: null, session: null });
@@ -148,8 +155,6 @@ export const useAuthStore = create<UserState>()(
             }
 
             if (data.session) {
-              console.log("Login exitoso. Usuario Supabase ID:", data.user.id);
-
               const user: User = {
                 id: data.user.id,
                 googleId: response.data.user.id,
@@ -175,6 +180,9 @@ export const useAuthStore = create<UserState>()(
                 session: data.session,
                 onboarding_complete: profile?.onboarding_completed ?? false,
               });
+
+              // Hydrate all screens right after sign in
+              await get().refreshData();
             }
           }
         } catch (error) {
@@ -207,6 +215,8 @@ export const useAuthStore = create<UserState>()(
         } catch (error) {
           console.error("SignOut error:", error);
         } finally {
+          // Wipe all shared data when the user logs out
+          useDataStore.getState().reset();
           set({
             isLoggedIn: false,
             user: null,
@@ -232,7 +242,6 @@ export const useAuthStore = create<UserState>()(
         },
       })),
       partialize: (state) => {
-        // Solo guardamos user y onboarding_complete
         const { user, onboarding_complete } = state;
         return { user, onboarding_complete };
       },
