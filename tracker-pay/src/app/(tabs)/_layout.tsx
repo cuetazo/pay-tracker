@@ -20,6 +20,7 @@ export default function ProtectedLayout() {
   return (
     <Tabs
       screenOptions={{
+        headerShown: false,
         tabBarActiveTintColor: Colors.primary.main,
         animation: "fade",
         sceneStyle: {
