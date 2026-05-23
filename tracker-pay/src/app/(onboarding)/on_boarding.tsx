@@ -114,12 +114,14 @@ export default function OnboardingScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Progress bar */}
-          <View style={styles.progressTrack}>
-            <View
-              style={[styles.progressFill, { width: `${progress * 100}%` }]}
-            />
+          <View>
+            <Text style={styles.stepLabel}>Paso {step} de 3</Text>
+            <View style={styles.progressTrack}>
+              <View
+                style={[styles.progressFill, { width: `${progress * 100}%` }]}
+              />
+            </View>
           </View>
-          <Text style={styles.stepLabel}>Paso {step} de 3</Text>
 
           {/* Step 1: Welcome */}
           {step === 1 && (
@@ -131,28 +133,34 @@ export default function OnboardingScreen() {
                   color={Colors.primary.main}
                 />
               </View>
-              <Text style={styles.heading}>¡Hola, {firstName}!</Text>
-              <Text style={styles.subheading}>
-                Configura tu perfil financiero para comenzar a tomar el control
-                de tu dinero.
-              </Text>
-              <Text style={styles.label}>¿Cuánto ganas al mes?</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.currencySymbol}>S/</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="0.00"
-                  placeholderTextColor={Colors.neutral.gray400}
-                  keyboardType="decimal-pad"
-                  value={salary}
-                  onChangeText={setSalary}
-                  returnKeyType="done"
-                  onSubmitEditing={handleNext}
-                />
+              <View style={styles.wrapContainer}>
+                <Text style={styles.heading}>
+                  ¡Hola, {firstName.toUpperCase()}!
+                </Text>
+                <Text style={styles.subheading}>
+                  Configura tu perfil financiero para comenzar a tomar el
+                  control de tu dinero.
+                </Text>
               </View>
-              <Text style={styles.hint}>
-                Este dato nos ayuda a calcular tu margen disponible.
-              </Text>
+              <View style={styles.wrapTopContainer}>
+                <Text style={styles.label}>¿Cuánto ganas al mes?</Text>
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.currencySymbol}>S/</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="0.00"
+                    placeholderTextColor={Colors.neutral.gray400}
+                    keyboardType="decimal-pad"
+                    value={salary}
+                    onChangeText={setSalary}
+                    returnKeyType="done"
+                    onSubmitEditing={handleNext}
+                  />
+                </View>
+                <Text style={styles.hint}>
+                  Usaremos esto para calcular tus presupuestos sugeridos.
+                </Text>
+              </View>
             </View>
           )}
 
@@ -166,17 +174,19 @@ export default function OnboardingScreen() {
                   color={Colors.primary.main}
                 />
               </View>
-              <Text style={styles.heading}>Tu límite de gasto</Text>
-              <Text style={styles.subheading}>
-                Define cuánto quieres gastar como máximo al mes. Te avisaremos
-                cuando te acerques.
-              </Text>
+              <View style={styles.wrapContainer}>
+                <Text style={styles.heading}>Tu límite de gasto</Text>
+                <Text style={styles.subheading}>
+                  Define cuánto quieres gastar como máximo al mes. Te avisaremos
+                  cuando te acerques.
+                </Text>
+              </View>
 
               {/* Salary chip */}
               <View style={styles.referenceChip}>
                 <MaterialCommunityIcons
                   name="cash"
-                  size={16}
+                  size={20}
                   color={Colors.primary.main}
                 />
                 <Text style={styles.referenceChipText}>
@@ -190,19 +200,21 @@ export default function OnboardingScreen() {
                 </Text>
               </View>
 
-              <Text style={styles.label}>Límite de gasto mensual</Text>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.currencySymbol}>S/</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="0.00"
-                  placeholderTextColor={Colors.neutral.gray400}
-                  keyboardType="decimal-pad"
-                  value={spendingLimit}
-                  onChangeText={setSpendingLimit}
-                  returnKeyType="done"
-                  onSubmitEditing={handleNext}
-                />
+              <View style={styles.wrapTopContainer}>
+                <Text style={styles.label}>Límite de gasto mensual</Text>
+                <View style={styles.inputWrapper}>
+                  <Text style={styles.currencySymbol}>S/</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="0.00"
+                    placeholderTextColor={Colors.neutral.gray400}
+                    keyboardType="decimal-pad"
+                    value={spendingLimit}
+                    onChangeText={setSpendingLimit}
+                    returnKeyType="done"
+                    onSubmitEditing={handleNext}
+                  />
+                </View>
               </View>
 
               {/* Percentage indicator */}
@@ -228,6 +240,18 @@ export default function OnboardingScreen() {
                   </Text>
                 </View>
               )}
+              <View
+                style={{
+                  backgroundColor: "#E6F3EF",
+                  padding: Spacing.lg,
+                  borderRadius: 6,
+                }}
+              >
+                <Text style={{ color: "#006947", fontSize: FontSize.sm }}>
+                  Recomendamos no exceder el 80% de tus ingresos para mantener
+                  una buena salud financiera.
+                </Text>
+              </View>
             </View>
           )}
 
@@ -238,41 +262,41 @@ export default function OnboardingScreen() {
                 <MaterialCommunityIcons
                   name="check-circle"
                   size={40}
-                  color={Colors.accent.income}
+                  color={Colors.primary.main}
                 />
               </View>
-              <Text style={styles.heading}>¡Todo listo!</Text>
-              <Text style={styles.subheading}>
-                Revisa tu configuración antes de empezar.
-              </Text>
+              <View style={styles.wrapContainer}>
+                <Text style={styles.heading}>¡Todo listo!</Text>
+                <Text style={styles.subheading}>
+                  Revisa tu configuración antes de empezar.
+                </Text>
+              </View>
 
               <View style={styles.summaryCard}>
                 <SummaryRow
                   icon="cash-multiple"
                   label="Ingreso mensual"
                   value={`S/ ${Number(salary).toLocaleString("es-PE", { minimumFractionDigits: 2 })}`}
-                  color={Colors.accent.income}
+                  color={Colors.primary.main}
                 />
-                <View style={styles.divider} />
                 <SummaryRow
                   icon="wallet"
                   label="Límite de gasto"
                   value={`S/ ${Number(spendingLimit).toLocaleString("es-PE", { minimumFractionDigits: 2 })}`}
                   color={Colors.primary.main}
                 />
-                <View style={styles.divider} />
                 <SummaryRow
                   icon="piggy-bank"
                   label="Ahorro estimado"
                   value={`S/ ${(Number(salary) - Number(spendingLimit)).toLocaleString("es-PE", { minimumFractionDigits: 2 })}`}
-                  color={Colors.accent.income}
+                  color={Colors.primary.main}
+                  variant="highlight"
                 />
+                <Text style={styles.hint}>
+                  Puedes actualizar estos valores en cualquier momento desde tu
+                  perfil.
+                </Text>
               </View>
-
-              <Text style={styles.hint}>
-                Puedes actualizar estos valores en cualquier momento desde tu
-                perfil.
-              </Text>
             </View>
           )}
 
@@ -334,20 +358,47 @@ function SummaryRow({
   label,
   value,
   color,
+  variant = "default",
 }: {
   icon: string;
   label: string;
   value: string;
   color: string;
+  variant?: "default" | "highlight";
 }) {
+  const variantStyles = {
+    default: {
+      container: {},
+      label: {},
+      value: {},
+    },
+    highlight: {
+      container: { backgroundColor: "#3282DE" },
+      label: { color: "white" },
+      value: { color: "white" },
+      iconBg: { backgroundColor: "white" },
+    },
+  };
+
   return (
-    <View style={summaryStyles.row}>
-      <View style={[summaryStyles.iconBg, { backgroundColor: color + "20" }]}>
+    <View style={[summaryStyles.row, variantStyles[variant].container]}>
+      <View
+        style={[
+          summaryStyles.iconBg,
+          variant === "highlight"
+            ? variantStyles.highlight.iconBg
+            : { backgroundColor: color + "20" },
+        ]}
+      >
         <MaterialCommunityIcons name={icon as any} size={20} color={color} />
       </View>
       <View style={summaryStyles.textGroup}>
-        <Text style={summaryStyles.label}>{label}</Text>
-        <Text style={[summaryStyles.value, { color }]}>{value}</Text>
+        <Text style={[summaryStyles.label, variantStyles[variant].label]}>
+          {label}
+        </Text>
+        <Text style={[summaryStyles.value, variantStyles[variant].value]}>
+          {value}
+        </Text>
       </View>
     </View>
   );
@@ -357,25 +408,28 @@ const summaryStyles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: Spacing.sm,
+    padding: Spacing.lg,
+    gap: Spacing.lg,
+    borderColor: "#C2C6D64D",
+    borderWidth: 1,
+    borderRadius: 8,
   },
   iconBg: {
     width: 40,
     height: 40,
-    borderRadius: BorderRadius.md,
+    borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: Spacing.md,
   },
   textGroup: { flex: 1 },
   label: {
     fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray500,
-    marginBottom: 2,
   },
   value: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.bold,
+    fontSize: FontSize.xxl,
+    fontWeight: FontWeight.semibold,
   },
 });
 
@@ -383,16 +437,16 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: {
     flexGrow: 1,
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.xxxl,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xxl,
+    gap: Spacing.xxxl,
     backgroundColor: Colors.primary.background,
   },
   progressTrack: {
-    height: 4,
+    height: 8,
     backgroundColor: Colors.neutral.gray200,
     borderRadius: BorderRadius.full,
-    marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
     overflow: "hidden",
   },
   progressFill: {
@@ -401,98 +455,100 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   stepLabel: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.medium,
+    lineHeight: 20,
     color: Colors.neutral.gray500,
-    marginBottom: Spacing.xxxl,
     textAlign: "right",
   },
   stepContainer: {
     flex: 1,
     alignItems: "center",
+    gap: Spacing.xxl,
   },
   iconCircle: {
-    width: 80,
-    height: 80,
+    width: 96,
+    height: 96,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.primary.soft,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: Spacing.xl,
+  },
+  wrapContainer: {
+    gap: Spacing.sm,
+  },
+  wrapTopContainer: {
+    paddingTop: Spacing.lg,
+    gap: Spacing.sm,
   },
   heading: {
-    fontSize: FontSize.xxxl,
-    fontWeight: FontWeight.extrabold,
+    fontSize: FontSize.xxl,
+    fontWeight: FontWeight.semibold,
+    lineHeight: 32,
     color: Colors.neutral.gray900,
     textAlign: "center",
-    marginBottom: Spacing.sm,
   },
   subheading: {
-    fontSize: FontSize.base,
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.regular,
     color: Colors.neutral.gray500,
     textAlign: "center",
-    lineHeight: 22,
-    marginBottom: Spacing.xxl,
-    paddingHorizontal: Spacing.md,
+    lineHeight: 24,
+    paddingHorizontal: 18,
   },
   label: {
     alignSelf: "flex-start",
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.medium,
     color: Colors.neutral.gray700,
-    marginBottom: Spacing.sm,
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: Colors.neutral.gray50,
-    borderWidth: 1.5,
-    borderColor: Colors.neutral.gray200,
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.lg,
+    borderRadius: 8,
+    padding: Spacing.lg,
     width: "100%",
     height: 56,
-    ...Shadow.sm,
   },
   currencySymbol: {
-    fontSize: FontSize.lg,
+    fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
-    color: Colors.primary.main,
+    color: Colors.neutral.gray500,
     marginRight: Spacing.sm,
   },
   input: {
     flex: 1,
-    fontSize: FontSize.xl,
+    fontSize: FontSize.md,
     fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray900,
+    color: Colors.neutral.gray500,
     padding: 0,
   },
   hint: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.neutral.gray400,
-    marginTop: Spacing.sm,
-    textAlign: "center",
+    fontWeight: FontWeight.regular,
   },
   referenceChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: Spacing.xs,
     backgroundColor: Colors.primary.soft,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
-    marginBottom: Spacing.lg,
   },
   referenceChipText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.base,
     color: Colors.neutral.gray700,
+    fontWeight: FontWeight.semibold,
   },
   referenceChipAmount: {
-    fontWeight: FontWeight.bold,
+    fontWeight: FontWeight.semibold,
     color: Colors.primary.dark,
   },
   percentageRow: {
     width: "100%",
-    marginTop: Spacing.lg,
   },
   percentageBarTrack: {
     height: 8,
@@ -506,22 +562,13 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   percentageLabel: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.neutral.gray500,
     textAlign: "right",
   },
   summaryCard: {
     width: "100%",
-    backgroundColor: Colors.neutral.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    marginBottom: Spacing.xl,
-    ...Shadow.md,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: Colors.neutral.gray100,
-    marginVertical: Spacing.xs,
+    gap: 8,
   },
   buttonGroup: {
     flexDirection: "row",
@@ -532,11 +579,13 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     gap: Spacing.sm,
+    justifyContent: "center",
+    borderRadius: 6,
     backgroundColor: Colors.primary.main,
     paddingVertical: Spacing.lg,
   },
   primaryButtonText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.base,
     fontWeight: FontWeight.semibold,
     color: "white",
   },
@@ -545,13 +594,13 @@ const styles = StyleSheet.create({
   },
   backButton: {
     paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1.5,
-    borderColor: Colors.neutral.gray300,
+    paddingHorizontal: Spacing.xxxl,
+    borderRadius: 6,
+    backgroundColor: "#E8EEFF",
   },
   backButtonText: {
     fontSize: FontSize.sm,
     fontWeight: FontWeight.semibold,
+    color: "#0058BE",
   },
 });
