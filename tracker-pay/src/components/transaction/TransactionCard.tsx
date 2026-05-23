@@ -1,14 +1,23 @@
-import { Colors } from "@/constants/theme_test";
+// components/transaction/TransactionCard.tsx
+import {
+  BorderRadius,
+  Colors,
+  FontSize,
+  FontWeight,
+  Shadow,
+  Spacing,
+} from "@/constants/theme";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { StyleSheet, Text, View } from "react-native";
 
-export type TransactionType = "income" | "expense";
-
-export type TransactionCardsProps = {
+type Props = {
   amount: number;
-  transaction_type: TransactionType;
+  transaction_type: "income" | "expense";
   category: string;
   destinatary: string;
+  date?: string;
+  /** When true, renders without card background/shadow/margin (for use inside other cards) */
+  flat?: boolean;
 };
 
 export default function TransactionCard({
@@ -16,85 +25,88 @@ export default function TransactionCard({
   transaction_type,
   category,
   destinatary,
-}: TransactionCardsProps) {
-  const isExpense = transaction_type === "expense";
+  date,
+  flat = false,
+}: Props) {
+  const isIncome = transaction_type === "income";
 
-  const sign = isExpense ? "-" : "+";
-
-  const color = isExpense
-    ? Colors.accent.expense
-    : Colors.accent.income;
-
-  const icon = isExpense
-    ? "arrow-top-right"
-    : "arrow-bottom-left";
+  const fmt = (n: number) =>
+    `S/ ${Math.abs(n).toLocaleString("es-PE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
 
   return (
-    <View style={styles.container}>
-      {/* LEFT SIDE */}
-      <View style={styles.container__information}>
-        {/* ICON */}
-        <View
-          style={[
-            styles.container__icon,
-            { backgroundColor: color },
-          ]}
-        >
-          <MaterialCommunityIcons
-            name={icon}
-            size={24}
-            color="#FFFFFF"
-          />
-        </View>
-
-        {/* TEXTS */}
-        <View style={styles.textGroup}>
-          <Text style={styles.destinataryText}>
-            {destinatary}
-          </Text>
-
-          <View>
-            <Text style={styles.categoryText}>
-              {category}
-            </Text>
-
-            <Text style={styles.dateText}>
-              Hoy
-            </Text>
-          </View>
-        </View>
+    <View style={[styles.card, flat && styles.cardFlat]}>
+      {/* Icon */}
+      <View
+        style={[
+          styles.iconBg,
+          {
+            backgroundColor: isIncome
+              ? Colors.accent.income + "22"
+              : Colors.accent.expense + "22",
+          },
+        ]}
+      >
+        <MaterialCommunityIcons
+          name={isIncome ? "arrow-down-left" : "arrow-up-right"}
+          size={22}
+          color={isIncome ? Colors.accent.income : Colors.accent.expense}
+        />
       </View>
 
-      {/* RIGHT SIDE */}
-      <View>
-        <Text
-          style={[
-            styles.amount_text,
-            { color: color },
-          ]}
-        >
-          {sign}${amount}
+      {/* Info */}
+      <View style={styles.info}>
+        <Text style={styles.destinatary} numberOfLines={1}>
+          {destinatary}
+        </Text>
+        <Text style={styles.meta} numberOfLines={1}>
+          {date ? `${date} · ` : ""}
+          {category}
         </Text>
       </View>
+
+      {/* Amount */}
+      <Text
+        style={[
+          styles.amount,
+          { color: isIncome ? Colors.accent.income : Colors.accent.expense },
+        ]}
+      >
+        {isIncome ? "+ " : "- "}
+        {fmt(amount)}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    width: "100%",
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#ECECEC",
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+  card: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: Colors.neutral.white,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    marginBottom: Spacing.sm,
+    gap: Spacing.md,
+    ...Shadow.md,
   },
-
-  container__information: {
-    flexDirection: "row",
+  cardFlat: {
+    backgroundColor: "transparent",
+    borderRadius: 0,
+    paddingHorizontal: 0,
+    paddingVertical: Spacing.sm,
+    marginBottom: 0,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  iconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    justifyContent: "center",
     alignItems: "center",
     flex: 1,
   },
@@ -106,33 +118,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
-  textGroup: {
-    marginLeft: 12,
-    justifyContent: "center",
+  info: {
+    flex: 1,
+    gap: 3,
   },
-
-  destinataryText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 2,
+  destinatary: {
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.semibold,
+    color: Colors.neutral.gray900,
   },
-
-  categoryText: {
-    fontSize: 13,
-    color: "#6B7280",
-    fontWeight: "500",
+  meta: {
+    fontSize: FontSize.sm,
+    color: Colors.neutral.gray400,
   },
-
-  dateText: {
-    fontSize: 11,
-    color: "#9CA3AF",
-    marginTop: 2,
-  },
-
-  amount_text: {
-    fontSize: 18,
-    fontWeight: "700",
+  amount: {
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.bold,
   },
 });
