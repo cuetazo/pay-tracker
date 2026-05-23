@@ -12,8 +12,7 @@ import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -86,6 +85,9 @@ export default function BudgetsScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CategoryForm>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+
+  // Ref para el ScrollView del modal
+  const scrollRef = useRef<ScrollView>(null);
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -202,6 +204,19 @@ export default function BudgetsScreen() {
   // ─── Totals ───────────────────────────────────────────────────────────────
   const totalBudget = categories.reduce((s, c) => s + (c.limit_amount ?? 0), 0);
   const totalSpent = categories.reduce((s, c) => s + spentForCategory(c.id), 0);
+
+  // ─── Scroll helpers ───────────────────────────────────────────────────────
+  const scrollToEnd = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+  };
+
+  const scrollToY = (y: number) => {
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y, animated: true });
+    }, 150);
+  };
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -377,6 +392,7 @@ export default function BudgetsScreen() {
         visible={modalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
@@ -391,12 +407,14 @@ export default function BudgetsScreen() {
           <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={{ flex: 1 }}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
           >
             <ScrollView
+              ref={scrollRef}
               style={styles.modalScroll}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: Spacing.xxxl }}
+              contentContainerStyle={{ paddingBottom: Spacing.xxxl * 3 }}
             >
               {/* Icon picker */}
               <Text style={styles.fieldLabel}>Icono</Text>
@@ -443,6 +461,7 @@ export default function BudgetsScreen() {
                 value={form.name}
                 onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
                 placeholder="ej. Alimentacion"
+                onFocus={() => scrollToY(0)}
               />
 
               <ModalField
@@ -450,6 +469,7 @@ export default function BudgetsScreen() {
                 value={form.description}
                 onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
                 placeholder="ej. Comida y supermercado"
+                onFocus={() => scrollToY(100)}
               />
 
               <ModalField
@@ -458,6 +478,7 @@ export default function BudgetsScreen() {
                 onChangeText={(v) => setForm((f) => ({ ...f, limit_amount: v }))}
                 placeholder="0.00"
                 keyboardType="decimal-pad"
+                onFocus={scrollToEnd}
               />
 
               {form.limit_amount ? (
@@ -525,12 +546,14 @@ function ModalField({
   onChangeText,
   placeholder,
   keyboardType = "default",
+  onFocus,
 }: {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
   keyboardType?: "default" | "decimal-pad";
+  onFocus?: () => void;
 }) {
   return (
     <>
@@ -542,6 +565,7 @@ function ModalField({
         placeholder={placeholder}
         placeholderTextColor={Colors.neutral.gray400}
         keyboardType={keyboardType}
+        onFocus={onFocus}
       />
     </>
   );
@@ -607,7 +631,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.neutral.white,
     borderRadius: BorderRadius.md,
     padding: Spacing.xxl,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.sm,
     ...Shadow.md,
   },
   cardTop: {
