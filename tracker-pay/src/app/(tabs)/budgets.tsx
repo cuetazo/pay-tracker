@@ -1,4 +1,4 @@
-// app/(protected)/budgets.tsx
+// app/(tabs)/budgets.tsx
 import {
   BorderRadius,
   Colors,
@@ -12,6 +12,7 @@ import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -41,7 +42,7 @@ type CategoryForm = {
 const EMPTY_FORM: CategoryForm = {
   name: "",
   description: "",
-  icon: "💰",
+  icon: "wallet",
   color: Colors.primary.main,
   limit_amount: "",
   limit_interval: "monthly",
@@ -58,17 +59,18 @@ const PRESET_COLORS = [
   "#F97316",
 ];
 
-const PRESET_ICONS = [
-  "💰",
-  "🍔",
-  "🚗",
-  "🏠",
-  "🎮",
-  "✈️",
-  "💊",
-  "📚",
-  "👗",
-  "⚡",
+// MaterialCommunityIcons names for the icon picker
+const PRESET_ICONS: { key: string; lib: "mci" | "ion" }[] = [
+  { key: "wallet",                lib: "mci" },
+  { key: "food",                  lib: "mci" },
+  { key: "car",                   lib: "mci" },
+  { key: "home",                  lib: "mci" },
+  { key: "gamepad-variant",       lib: "mci" },
+  { key: "airplane",              lib: "mci" },
+  { key: "pill",                  lib: "mci" },
+  { key: "book-open-variant",     lib: "mci" },
+  { key: "tshirt-crew",           lib: "mci" },
+  { key: "lightning-bolt",        lib: "mci" },
 ];
 
 const INTERVALS: Record<string, string> = {
@@ -131,7 +133,7 @@ export default function BudgetsScreen() {
     setForm({
       name: cat.name,
       description: cat.description ?? "",
-      icon: cat.icon ?? "💰",
+      icon: cat.icon ?? "wallet",
       color: cat.color ?? Colors.primary.main,
       limit_amount: cat.limit_amount?.toString() ?? "",
       limit_interval:
@@ -195,7 +197,7 @@ export default function BudgetsScreen() {
             else fetchData();
           },
         },
-      ],
+      ]
     );
   };
 
@@ -244,11 +246,15 @@ export default function BudgetsScreen() {
                       styles.iconBg,
                       {
                         backgroundColor:
-                          (item.color ?? Colors.primary.main) + "20",
+                          (item.color ?? Colors.primary.main) + "22",
                       },
                     ]}
                   >
-                    <Text style={styles.iconText}>{item.icon ?? "💰"}</Text>
+                    <MaterialCommunityIcons
+                      name={(item.icon ?? "wallet") as any}
+                      size={22}
+                      color={item.color ?? Colors.primary.main}
+                    />
                   </View>
                   <View style={styles.cardInfo}>
                     <Text style={styles.categoryName}>{item.name}</Text>
@@ -268,7 +274,7 @@ export default function BudgetsScreen() {
                       {fmt(spent)}
                     </Text>
                     {limit > 0 && (
-                      <Text style={styles.limitAmount}>/ {fmt(limit)}</Text>
+                      <Text style={styles.limitAmount}>{fmt(limit)}</Text>
                     )}
                   </View>
                 </View>
@@ -280,7 +286,7 @@ export default function BudgetsScreen() {
                         style={[
                           styles.progressFill,
                           {
-                            width: `${pct * 100}%`,
+                            width: `${pct * 100}%` as any,
                             backgroundColor: overBudget
                               ? Colors.accent.expense
                               : (item.color ?? Colors.primary.main),
@@ -298,7 +304,7 @@ export default function BudgetsScreen() {
                         {Math.round(pct * 100)}% usado
                       </Text>
                       {overBudget ? (
-                        <Text style={styles.overBudgetText}>⚠ Excedido</Text>
+                        <Text style={styles.overBudgetText}>Excedido</Text>
                       ) : (
                         <Text style={styles.remainingText}>
                           {fmt(limit - spent)} restante
@@ -325,36 +331,31 @@ export default function BudgetsScreen() {
                 size={48}
                 color={Colors.neutral.gray300}
               />
-              <Text style={styles.emptyText}>Sin categorías aún</Text>
-              <Text style={styles.emptySubtext}>
-                Toca + para crear tu primera
-              </Text>
+              <Text style={styles.emptyText}>Sin categorias aun</Text>
+              <Text style={styles.emptySubtext}>Toca + para crear tu primera</Text>
             </View>
           }
           ListFooterComponent={<View style={{ height: 100 }} />}
           ListHeaderComponent={
             <View style={styles.listHeader}>
-              <Text style={styles.headerTitle}>Presupuestos</Text>
+              <Text style={styles.headerTitle}>Consumo</Text>
               <Text style={styles.headerSubtitle}>
-                Gestiona tus categorías de gasto
+                Gestiona tus categorias de gastos
               </Text>
 
               {categories.length > 0 && (
-                <View style={styles.summaryRow}>
-                  <SummaryCard
-                    label="Total presupuestado"
-                    value={fmt(totalBudget)}
-                    color={Colors.primary.main}
-                  />
-                  <SummaryCard
-                    label="Total gastado"
-                    value={fmt(totalSpent)}
-                    color={
-                      totalSpent > totalBudget
-                        ? Colors.accent.expense
-                        : Colors.accent.income
-                    }
-                  />
+                <View style={styles.totalCard}>
+                  <View style={styles.totalCardIcon}>
+                    <MaterialCommunityIcons
+                      name="credit-card-outline"
+                      size={22}
+                      color="#fff"
+                    />
+                  </View>
+                  <View>
+                    <Text style={styles.totalCardLabel}>Total gastado</Text>
+                    <Text style={styles.totalCardValue}>{fmt(totalSpent)}</Text>
+                  </View>
                 </View>
               )}
             </View>
@@ -381,37 +382,38 @@ export default function BudgetsScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {editingId ? "Editar categoría" : "Nueva categoría"}
+              {editingId ? "Editar categoria" : "Nueva categoria"}
             </Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <AntDesign
-                name="close"
-                size={22}
-                color={Colors.neutral.gray700}
-              />
+              <AntDesign name="close" size={22} color={Colors.neutral.gray700} />
             </TouchableOpacity>
           </View>
 
           <ScrollView
             style={styles.modalScroll}
             keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
             {/* Icon picker */}
-            <Text style={styles.fieldLabel}>Ícono</Text>
+            <Text style={styles.fieldLabel}>Icono</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {PRESET_ICONS.map((ic) => (
+              {PRESET_ICONS.map(({ key }) => (
                 <TouchableOpacity
-                  key={ic}
+                  key={key}
                   style={[
                     styles.iconOption,
-                    form.icon === ic && {
-                      backgroundColor: form.color + "30",
+                    form.icon === key && {
+                      backgroundColor: form.color + "22",
                       borderColor: form.color,
                     },
                   ]}
-                  onPress={() => setForm((f) => ({ ...f, icon: ic }))}
+                  onPress={() => setForm((f) => ({ ...f, icon: key }))}
                 >
-                  <Text style={styles.iconOptionText}>{ic}</Text>
+                  <MaterialCommunityIcons
+                    name={key as any}
+                    size={22}
+                    color={form.icon === key ? form.color : Colors.neutral.gray400}
+                  />
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -436,18 +438,18 @@ export default function BudgetsScreen() {
               label="Nombre *"
               value={form.name}
               onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
-              placeholder="ej. Alimentación"
+              placeholder="ej. Alimentacion"
             />
 
             <ModalField
-              label="Descripción (opcional)"
+              label="Descripcion (opcional)"
               value={form.description}
               onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
               placeholder="ej. Comida y supermercado"
             />
 
             <ModalField
-              label="Límite (S/, opcional)"
+              label="Limite (S/, opcional)"
               value={form.limit_amount}
               onChangeText={(v) => setForm((f) => ({ ...f, limit_amount: v }))}
               placeholder="0.00"
@@ -501,30 +503,13 @@ export default function BudgetsScreen() {
                 <ActivityIndicator color="white" />
               ) : (
                 <Text style={styles.saveButtonText}>
-                  {editingId ? "Guardar cambios" : "Crear categoría"}
+                  {editingId ? "Guardar cambios" : "Crear categoria"}
                 </Text>
               )}
             </TouchableOpacity>
           </ScrollView>
         </View>
       </Modal>
-    </View>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color: string;
-}) {
-  return (
-    <View style={[summaryStyles.card, Shadow.sm]}>
-      <Text style={summaryStyles.label}>{label}</Text>
-      <Text style={[summaryStyles.value, { color }]}>{value}</Text>
     </View>
   );
 }
@@ -557,26 +542,6 @@ function ModalField({
   );
 }
 
-const summaryStyles = StyleSheet.create({
-  card: {
-    flex: 1,
-    backgroundColor: Colors.neutral.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    alignItems: "center",
-  },
-  label: {
-    fontSize: FontSize.xs,
-    color: Colors.neutral.gray500,
-    marginBottom: Spacing.xs,
-    textAlign: "center",
-  },
-  value: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
-  },
-});
-
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   listContent: { paddingHorizontal: Spacing.xl },
@@ -592,7 +557,35 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     marginBottom: Spacing.lg,
   },
-  summaryRow: { flexDirection: "row", gap: Spacing.md },
+  // ── Total card ──────────────────────────────────────────────────
+  totalCard: {
+    backgroundColor: Colors.primary.main,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    ...Shadow.md,
+  },
+  totalCardIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  totalCardLabel: {
+    fontSize: FontSize.sm,
+    color: "rgba(255,255,255,0.85)",
+    marginBottom: 2,
+  },
+  totalCardValue: {
+    fontSize: FontSize.xxl,
+    fontWeight: FontWeight.extrabold,
+    color: Colors.neutral.white,
+  },
+  // ── Category card ───────────────────────────────────────────────
   categoryCard: {
     backgroundColor: Colors.neutral.white,
     borderRadius: BorderRadius.lg,
@@ -613,7 +606,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: Spacing.md,
   },
-  iconText: { fontSize: 22 },
   cardInfo: { flex: 1 },
   categoryName: {
     fontSize: FontSize.md,
@@ -629,7 +621,7 @@ const styles = StyleSheet.create({
   spentAmount: {
     fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
-    color: Colors.neutral.gray900,
+    color: Colors.accent.income,
   },
   limitAmount: {
     fontSize: FontSize.xs,
@@ -637,7 +629,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   progressTrack: {
-    height: 6,
+    height: 5,
     backgroundColor: Colors.neutral.gray100,
     borderRadius: BorderRadius.full,
     overflow: "hidden",
@@ -662,7 +654,7 @@ const styles = StyleSheet.create({
   },
   remainingText: {
     fontSize: FontSize.xs,
-    color: Colors.accent.income,
+    color: Colors.neutral.gray500,
   },
   intervalChip: {
     alignSelf: "flex-start",
@@ -702,7 +694,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...Shadow.lg,
   },
-  // Modal
+  // ── Modal ───────────────────────────────────────────────────────
   modalContainer: { flex: 1, backgroundColor: Colors.primary.background },
   modalHeader: {
     flexDirection: "row",
@@ -740,20 +732,20 @@ const styles = StyleSheet.create({
     color: Colors.neutral.gray900,
   },
   iconOption: {
-    width: 44,
-    height: 44,
+    width: 46,
+    height: 46,
     borderRadius: BorderRadius.md,
     borderWidth: 1.5,
     borderColor: Colors.neutral.gray200,
     justifyContent: "center",
     alignItems: "center",
     marginRight: Spacing.sm,
+    backgroundColor: Colors.neutral.white,
   },
-  iconOptionText: { fontSize: 22 },
   colorRow: { flexDirection: "row", gap: Spacing.md, flexWrap: "wrap" },
   colorDot: {
-    width: 32,
-    height: 32,
+    width: 34,
+    height: 34,
     borderRadius: BorderRadius.full,
   },
   colorDotSelected: {
