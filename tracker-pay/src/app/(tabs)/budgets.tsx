@@ -1,4 +1,4 @@
-// app/(protected)/budgets.tsx
+// app/(tabs)/budgets.tsx
 import {
   BorderRadius,
   Colors,
@@ -12,12 +12,14 @@ import { useAuthStore } from "@/utils/authStore";
 import { supabase } from "@/utils/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -41,7 +43,7 @@ type CategoryForm = {
 const EMPTY_FORM: CategoryForm = {
   name: "",
   description: "",
-  icon: "💰",
+  icon: "wallet",
   color: Colors.primary.main,
   limit_amount: "",
   limit_interval: "monthly",
@@ -49,26 +51,23 @@ const EMPTY_FORM: CategoryForm = {
 
 const PRESET_COLORS = [
   "#0EA5E9",
-  "#10B981",
-  "#F43F5E",
-  "#F59E0B",
-  "#8B5CF6",
-  "#EC4899",
-  "#14B8A6",
-  "#F97316",
+  "#31C9A6",
+  "#E12E60",
+  "#EA9D2B",
+  "#8754EC",
 ];
 
-const PRESET_ICONS = [
-  "💰",
-  "🍔",
-  "🚗",
-  "🏠",
-  "🎮",
-  "✈️",
-  "💊",
-  "📚",
-  "👗",
-  "⚡",
+const PRESET_ICONS: { key: string; lib: "mci" | "ion" }[] = [
+  { key: "wallet",                lib: "mci" },
+  { key: "food",                  lib: "mci" },
+  { key: "car",                   lib: "mci" },
+  { key: "home",                  lib: "mci" },
+  { key: "gamepad-variant",       lib: "mci" },
+  { key: "airplane",              lib: "mci" },
+  { key: "pill",                  lib: "mci" },
+  { key: "book-open-variant",     lib: "mci" },
+  { key: "tshirt-crew",           lib: "mci" },
+  { key: "lightning-bolt",        lib: "mci" },
 ];
 
 const INTERVALS: Record<string, string> = {
@@ -86,6 +85,9 @@ export default function BudgetsScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<CategoryForm>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+
+  // Ref para el ScrollView del modal
+  const scrollRef = useRef<ScrollView>(null);
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -131,7 +133,7 @@ export default function BudgetsScreen() {
     setForm({
       name: cat.name,
       description: cat.description ?? "",
-      icon: cat.icon ?? "💰",
+      icon: cat.icon ?? "wallet",
       color: cat.color ?? Colors.primary.main,
       limit_amount: cat.limit_amount?.toString() ?? "",
       limit_interval:
@@ -195,13 +197,26 @@ export default function BudgetsScreen() {
             else fetchData();
           },
         },
-      ],
+      ]
     );
   };
 
   // ─── Totals ───────────────────────────────────────────────────────────────
   const totalBudget = categories.reduce((s, c) => s + (c.limit_amount ?? 0), 0);
   const totalSpent = categories.reduce((s, c) => s + spentForCategory(c.id), 0);
+
+  // ─── Scroll helpers ───────────────────────────────────────────────────────
+  const scrollToEnd = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    }, 150);
+  };
+
+  const scrollToY = (y: number) => {
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y, animated: true });
+    }, 150);
+  };
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -244,11 +259,15 @@ export default function BudgetsScreen() {
                       styles.iconBg,
                       {
                         backgroundColor:
-                          (item.color ?? Colors.primary.main) + "20",
+                          (item.color ?? Colors.primary.main) + "22",
                       },
                     ]}
                   >
-                    <Text style={styles.iconText}>{item.icon ?? "💰"}</Text>
+                    <MaterialCommunityIcons
+                      name={(item.icon ?? "wallet") as any}
+                      size={26}
+                      color={item.color ?? Colors.primary.main}
+                    />
                   </View>
                   <View style={styles.cardInfo}>
                     <Text style={styles.categoryName}>{item.name}</Text>
@@ -268,7 +287,7 @@ export default function BudgetsScreen() {
                       {fmt(spent)}
                     </Text>
                     {limit > 0 && (
-                      <Text style={styles.limitAmount}>/ {fmt(limit)}</Text>
+                      <Text style={styles.limitAmount}>{fmt(limit)}</Text>
                     )}
                   </View>
                 </View>
@@ -280,7 +299,7 @@ export default function BudgetsScreen() {
                         style={[
                           styles.progressFill,
                           {
-                            width: `${pct * 100}%`,
+                            width: `${pct * 100}%` as any,
                             backgroundColor: overBudget
                               ? Colors.accent.expense
                               : (item.color ?? Colors.primary.main),
@@ -298,7 +317,7 @@ export default function BudgetsScreen() {
                         {Math.round(pct * 100)}% usado
                       </Text>
                       {overBudget ? (
-                        <Text style={styles.overBudgetText}>⚠ Excedido</Text>
+                        <Text style={styles.overBudgetText}>Excedido</Text>
                       ) : (
                         <Text style={styles.remainingText}>
                           {fmt(limit - spent)} restante
@@ -322,39 +341,35 @@ export default function BudgetsScreen() {
             <View style={styles.emptyState}>
               <MaterialCommunityIcons
                 name="piggy-bank-outline"
-                size={48}
+                size={56}
                 color={Colors.neutral.gray300}
               />
-              <Text style={styles.emptyText}>Sin categorías aún</Text>
-              <Text style={styles.emptySubtext}>
-                Toca + para crear tu primera
-              </Text>
+              <Text style={styles.emptyText}>Sin categorias aun</Text>
+              <Text style={styles.emptySubtext}>Toca + para crear tu primera</Text>
             </View>
           }
           ListFooterComponent={<View style={{ height: 100 }} />}
           ListHeaderComponent={
             <View style={styles.listHeader}>
-              <Text style={styles.headerTitle}>Presupuestos</Text>
+              <Text style={styles.headerTitle}>Consumo</Text>
               <Text style={styles.headerSubtitle}>
-                Gestiona tus categorías de gasto
+                Gestiona tus categorias de gastos
               </Text>
 
               {categories.length > 0 && (
-                <View style={styles.summaryRow}>
-                  <SummaryCard
-                    label="Total presupuestado"
-                    value={fmt(totalBudget)}
-                    color={Colors.primary.main}
-                  />
-                  <SummaryCard
-                    label="Total gastado"
-                    value={fmt(totalSpent)}
-                    color={
-                      totalSpent > totalBudget
-                        ? Colors.accent.expense
-                        : Colors.accent.income
-                    }
-                  />
+                <View style={styles.totalCard}>
+                  <View style={styles.totalCardCircle} />
+                  <View style={styles.totalCardIcon}>
+                    <MaterialCommunityIcons
+                      name="credit-card-outline"
+                      size={26}
+                      color="#fff"
+                    />
+                  </View>
+                  <View>
+                    <Text style={styles.totalCardLabel}>Total gastado</Text>
+                    <Text style={styles.totalCardValue}>{fmt(totalSpent)}</Text>
+                  </View>
                 </View>
               )}
             </View>
@@ -369,7 +384,7 @@ export default function BudgetsScreen() {
         onPress={openCreate}
         activeOpacity={0.85}
       >
-        <AntDesign name="plus" size={26} color="white" />
+        <AntDesign name="plus" size={28} color="white" />
       </TouchableOpacity>
 
       {/* ─── Modal ─────────────────────────────────────────────────── */}
@@ -377,154 +392,150 @@ export default function BudgetsScreen() {
         visible={modalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
+        onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>
-              {editingId ? "Editar categoría" : "Nueva categoría"}
+              {editingId ? "Editar categoria" : "Nueva categoria"}
             </Text>
             <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <AntDesign
-                name="close"
-                size={22}
-                color={Colors.neutral.gray700}
-              />
+              <AntDesign name="close" size={24} color={Colors.neutral.gray700} />
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            style={styles.modalScroll}
-            keyboardShouldPersistTaps="handled"
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ flex: 1 }}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
           >
-            {/* Icon picker */}
-            <Text style={styles.fieldLabel}>Ícono</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {PRESET_ICONS.map((ic) => (
-                <TouchableOpacity
-                  key={ic}
-                  style={[
-                    styles.iconOption,
-                    form.icon === ic && {
-                      backgroundColor: form.color + "30",
-                      borderColor: form.color,
-                    },
-                  ]}
-                  onPress={() => setForm((f) => ({ ...f, icon: ic }))}
-                >
-                  <Text style={styles.iconOptionText}>{ic}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <ScrollView
+              ref={scrollRef}
+              style={styles.modalScroll}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: Spacing.xxxl * 3 }}
+            >
+              {/* Icon picker */}
+              <Text style={styles.fieldLabel}>Icono</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {PRESET_ICONS.map(({ key }) => (
+                  <TouchableOpacity
+                    key={key}
+                    style={[
+                      styles.iconOption,
+                      form.icon === key && {
+                        backgroundColor: form.color + "22",
+                        borderColor: form.color,
+                      },
+                    ]}
+                    onPress={() => setForm((f) => ({ ...f, icon: key }))}
+                  >
+                    <MaterialCommunityIcons
+                      name={key as any}
+                      size={26}
+                      color={form.icon === key ? form.color : Colors.neutral.gray400}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
-            {/* Color picker */}
-            <Text style={styles.fieldLabel}>Color</Text>
-            <View style={styles.colorRow}>
-              {PRESET_COLORS.map((c) => (
-                <TouchableOpacity
-                  key={c}
-                  style={[
-                    styles.colorDot,
-                    { backgroundColor: c },
-                    form.color === c && styles.colorDotSelected,
-                  ]}
-                  onPress={() => setForm((f) => ({ ...f, color: c }))}
-                />
-              ))}
-            </View>
+              {/* Color picker */}
+              <Text style={styles.fieldLabel}>Color</Text>
+              <View style={styles.colorRow}>
+                {PRESET_COLORS.map((c) => (
+                  <TouchableOpacity
+                    key={c}
+                    style={[
+                      styles.colorDot,
+                      { backgroundColor: c },
+                      form.color === c && styles.colorDotSelected,
+                    ]}
+                    onPress={() => setForm((f) => ({ ...f, color: c }))}
+                  />
+                ))}
+              </View>
 
-            <ModalField
-              label="Nombre *"
-              value={form.name}
-              onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
-              placeholder="ej. Alimentación"
-            />
+              <ModalField
+                label="Nombre *"
+                value={form.name}
+                onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
+                placeholder="ej. Alimentacion"
+                onFocus={() => scrollToY(0)}
+              />
 
-            <ModalField
-              label="Descripción (opcional)"
-              value={form.description}
-              onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
-              placeholder="ej. Comida y supermercado"
-            />
+              <ModalField
+                label="Descripcion (opcional)"
+                value={form.description}
+                onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
+                placeholder="ej. Comida y supermercado"
+                onFocus={() => scrollToY(100)}
+              />
 
-            <ModalField
-              label="Límite (S/, opcional)"
-              value={form.limit_amount}
-              onChangeText={(v) => setForm((f) => ({ ...f, limit_amount: v }))}
-              placeholder="0.00"
-              keyboardType="decimal-pad"
-            />
+              <ModalField
+                label="Limite (S/, opcional)"
+                value={form.limit_amount}
+                onChangeText={(v) => setForm((f) => ({ ...f, limit_amount: v }))}
+                placeholder="0.00"
+                keyboardType="decimal-pad"
+                onFocus={scrollToEnd}
+              />
 
-            {form.limit_amount ? (
-              <>
-                <Text style={styles.fieldLabel}>Intervalo</Text>
-                <View style={styles.toggleRow}>
-                  {(["daily", "weekly", "monthly"] as const).map((interval) => (
-                    <TouchableOpacity
-                      key={interval}
-                      style={[
-                        styles.intervalButton,
-                        form.limit_interval === interval && {
-                          backgroundColor: form.color,
-                          borderColor: form.color,
-                        },
-                      ]}
-                      onPress={() =>
-                        setForm((f) => ({ ...f, limit_interval: interval }))
-                      }
-                    >
-                      <Text
+              {form.limit_amount ? (
+                <>
+                  <Text style={styles.fieldLabel}>Intervalo</Text>
+                  <View style={styles.toggleRow}>
+                    {(["daily", "weekly", "monthly"] as const).map((interval) => (
+                      <TouchableOpacity
+                        key={interval}
                         style={[
-                          styles.intervalButtonText,
+                          styles.intervalButton,
                           form.limit_interval === interval && {
-                            color: "white",
+                            backgroundColor: form.color,
+                            borderColor: form.color,
                           },
                         ]}
+                        onPress={() =>
+                          setForm((f) => ({ ...f, limit_interval: interval }))
+                        }
                       >
-                        {INTERVALS[interval]}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            ) : null}
+                        <Text
+                          style={[
+                            styles.intervalButtonText,
+                            form.limit_interval === interval && {
+                              color: "white",
+                            },
+                          ]}
+                        >
+                          {INTERVALS[interval]}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              ) : null}
 
-            <TouchableOpacity
-              style={[
-                styles.saveButton,
-                { backgroundColor: form.color },
-                saving && { opacity: 0.6 },
-              ]}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.saveButtonText}>
-                  {editingId ? "Guardar cambios" : "Crear categoría"}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </ScrollView>
+              <TouchableOpacity
+                style={[
+                  styles.saveButton,
+                  { backgroundColor: "#1E82F4" },
+                  saving && { opacity: 0.6 },
+                ]}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.saveButtonText}>
+                    {editingId ? "Guardar cambios" : "Crear categoria"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
-    </View>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color: string;
-}) {
-  return (
-    <View style={[summaryStyles.card, Shadow.sm]}>
-      <Text style={summaryStyles.label}>{label}</Text>
-      <Text style={[summaryStyles.value, { color }]}>{value}</Text>
     </View>
   );
 }
@@ -535,12 +546,14 @@ function ModalField({
   onChangeText,
   placeholder,
   keyboardType = "default",
+  onFocus,
 }: {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
   keyboardType?: "default" | "decimal-pad";
+  onFocus?: () => void;
 }) {
   return (
     <>
@@ -552,52 +565,73 @@ function ModalField({
         placeholder={placeholder}
         placeholderTextColor={Colors.neutral.gray400}
         keyboardType={keyboardType}
+        onFocus={onFocus}
       />
     </>
   );
 }
-
-const summaryStyles = StyleSheet.create({
-  card: {
-    flex: 1,
-    backgroundColor: Colors.neutral.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    alignItems: "center",
-  },
-  label: {
-    fontSize: FontSize.xs,
-    color: Colors.neutral.gray500,
-    marginBottom: Spacing.xs,
-    textAlign: "center",
-  },
-  value: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.bold,
-  },
-});
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   listContent: { paddingHorizontal: Spacing.xl },
   listHeader: { paddingTop: Spacing.xl, paddingBottom: Spacing.lg },
   headerTitle: {
-    fontSize: FontSize.xxxl,
+    fontSize: FontSize.display,
     fontWeight: FontWeight.extrabold,
     color: Colors.neutral.gray900,
   },
   headerSubtitle: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     color: Colors.neutral.gray500,
     marginTop: Spacing.xs,
     marginBottom: Spacing.lg,
   },
-  summaryRow: { flexDirection: "row", gap: Spacing.md },
+  // ── Total card ──────────────────────────────────────────────────
+  totalCard: {
+    backgroundColor: "#3282DE",
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+    height: 78,
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    overflow: "hidden",
+    ...Shadow.md,
+  },
+  totalCardCircle: {
+    position: "absolute",
+    right: -30,
+    top: -50,
+    width: 128,
+    height: 128,
+    borderRadius: 100,
+    backgroundColor: "rgba(31, 43, 151, 0.1)",
+  },
+  totalCardIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: BorderRadius.md,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  totalCardLabel: {
+    fontSize: FontSize.md,
+    color: "rgba(255,255,255,0.85)",
+    marginBottom: 2,
+  },
+  totalCardValue: {
+    fontSize: FontSize.xxxl,
+    fontWeight: FontWeight.extrabold,
+    color: Colors.neutral.white,
+  },
+  // ── Category card ───────────────────────────────────────────────
   categoryCard: {
     backgroundColor: Colors.neutral.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.xxl,
+    marginBottom: Spacing.sm,
     ...Shadow.md,
   },
   cardTop: {
@@ -606,42 +640,42 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   iconBg: {
-    width: 44,
-    height: 44,
+    width: 52,
+    height: 52,
     borderRadius: BorderRadius.md,
     justifyContent: "center",
     alignItems: "center",
     marginRight: Spacing.md,
   },
-  iconText: { fontSize: 22 },
   cardInfo: { flex: 1 },
   categoryName: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray900,
   },
   categoryDesc: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.neutral.gray500,
     marginTop: 2,
   },
   cardAmounts: { alignItems: "flex-end" },
   spentAmount: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
-    color: Colors.neutral.gray900,
+    color: Colors.accent.income,
   },
   limitAmount: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.neutral.gray400,
     marginTop: 2,
   },
   progressTrack: {
-    height: 6,
+    height: 7,
     backgroundColor: Colors.neutral.gray100,
     borderRadius: BorderRadius.full,
     overflow: "hidden",
     marginBottom: Spacing.xs,
+    marginTop: Spacing.sm,
   },
   progressFill: {
     height: "100%",
@@ -652,28 +686,28 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   progressPct: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.neutral.gray500,
   },
   overBudgetText: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.accent.expense,
     fontWeight: FontWeight.semibold,
   },
   remainingText: {
-    fontSize: FontSize.xs,
-    color: Colors.accent.income,
+    fontSize: FontSize.sm,
+    color: Colors.neutral.gray500,
   },
   intervalChip: {
     alignSelf: "flex-start",
     backgroundColor: Colors.neutral.gray100,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: BorderRadius.full,
     marginTop: Spacing.sm,
   },
   intervalChipText: {
-    fontSize: FontSize.xs,
+    fontSize: FontSize.sm,
     color: Colors.neutral.gray500,
   },
   emptyState: {
@@ -682,48 +716,48 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   emptyText: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray500,
   },
   emptySubtext: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     color: Colors.neutral.gray400,
   },
   fab: {
     position: "absolute",
     bottom: 24,
     right: 24,
-    width: 58,
-    height: 58,
+    width: 62,
+    height: 62,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary.main,
+    backgroundColor: "#1E82F4",
     justifyContent: "center",
     alignItems: "center",
     ...Shadow.lg,
   },
-  // Modal
+  // ── Modal ───────────────────────────────────────────────────────
   modalContainer: { flex: 1, backgroundColor: Colors.primary.background },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xxl,
+    paddingVertical: Spacing.xl,
     borderBottomWidth: 1,
     borderBottomColor: Colors.neutral.gray100,
   },
   modalTitle: {
-    fontSize: FontSize.xl,
+    fontSize: FontSize.xxl,
     fontWeight: FontWeight.bold,
     color: Colors.neutral.gray900,
   },
   modalScroll: {
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.xxl,
     paddingTop: Spacing.lg,
   },
   fieldLabel: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray700,
     marginBottom: Spacing.sm,
@@ -735,25 +769,25 @@ const styles = StyleSheet.create({
     borderColor: Colors.neutral.gray200,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.lg,
-    height: 50,
-    fontSize: FontSize.base,
+    height: 56,
+    fontSize: FontSize.md,
     color: Colors.neutral.gray900,
   },
   iconOption: {
-    width: 44,
-    height: 44,
+    width: 54,
+    height: 54,
     borderRadius: BorderRadius.md,
     borderWidth: 1.5,
     borderColor: Colors.neutral.gray200,
     justifyContent: "center",
     alignItems: "center",
     marginRight: Spacing.sm,
+    backgroundColor: Colors.neutral.white,
   },
-  iconOptionText: { fontSize: 22 },
   colorRow: { flexDirection: "row", gap: Spacing.md, flexWrap: "wrap" },
   colorDot: {
-    width: 32,
-    height: 32,
+    width: 40,
+    height: 40,
     borderRadius: BorderRadius.full,
   },
   colorDotSelected: {
@@ -763,7 +797,7 @@ const styles = StyleSheet.create({
   toggleRow: { flexDirection: "row", gap: Spacing.sm },
   intervalButton: {
     flex: 1,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.md,
     borderRadius: BorderRadius.sm,
     borderWidth: 1.5,
     borderColor: Colors.neutral.gray200,
@@ -771,12 +805,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.neutral.gray50,
   },
   intervalButtonText: {
-    fontSize: FontSize.sm,
+    fontSize: FontSize.md,
     fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray700,
   },
   saveButton: {
-    paddingVertical: Spacing.lg,
+    paddingVertical: Spacing.xl,
     borderRadius: BorderRadius.lg,
     alignItems: "center",
     marginTop: Spacing.xxl,
@@ -785,7 +819,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: Colors.neutral.white,
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
   },
 });
