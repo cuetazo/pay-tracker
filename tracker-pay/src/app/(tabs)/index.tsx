@@ -16,9 +16,10 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
-  View
+  View,
 } from "react-native";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
@@ -50,6 +51,7 @@ export default function HomeScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const currentMonth = MONTH_NAMES[new Date().getMonth()];
 
@@ -69,7 +71,7 @@ export default function HomeScreen() {
       supabase
         .from("profiles")
         .select(
-          "monthly_income, monthly_spending_limit, current_month_spending",
+          "monthly_income, monthly_spending_limit, current_month_spending, salary",
         )
         .eq("id", user.id)
         .single(),
@@ -80,6 +82,12 @@ export default function HomeScreen() {
     if (profileRes.data) setProfile(profileRes.data);
     setLoading(false);
   }, [user?.id]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  }, [fetchData]);
 
   useEffect(() => {
     fetchData();
@@ -94,7 +102,8 @@ export default function HomeScreen() {
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
-  const totalBalance = totalIncome - totalExpense;
+  const salary = (profile?.monthly_income ?? 0) as number;
+  const totalBalance = salary + totalIncome - totalExpense;
 
   const spendingLimit = profile?.monthly_spending_limit ?? 0;
   const currentSpending = profile?.current_month_spending ?? 0;
@@ -123,6 +132,9 @@ export default function HomeScreen() {
           data={transactions}
           keyExtractor={(item) => item.id}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           renderItem={({ item }) => (
             <TransactionCard
               amount={item.amount ?? 0}

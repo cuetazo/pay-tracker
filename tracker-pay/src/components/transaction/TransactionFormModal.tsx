@@ -114,7 +114,7 @@ export function TransactionFormModal({
       return;
     }
 
-    onSaveSuccess();
+    await onSaveSuccess();
     closeModal();
   };
 

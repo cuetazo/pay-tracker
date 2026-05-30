@@ -21,6 +21,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -36,6 +37,7 @@ export default function TransactionsScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -55,6 +57,12 @@ export default function TransactionsScreen() {
     if (catRes.data) setCategories(catRes.data);
     setLoading(false);
   }, [user?.id]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  }, [fetchData]);
 
   useEffect(() => {
     fetchData();
@@ -134,6 +142,9 @@ export default function TransactionsScreen() {
         <FlatList
           data={transactions}
           keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           renderItem={({ item }) => (
             <TouchableOpacity
               onLongPress={() =>
