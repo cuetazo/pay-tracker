@@ -250,7 +250,12 @@ export default function TransactionsScreen() {
 
               {/* Summary cards */}
               <View style={styles.summaryRow}>
-                <View style={styles.summaryCard}>
+                <View
+                  style={[
+                    styles.summaryCard,
+                    { backgroundColor: c.neutral.white },
+                  ]}
+                >
                   <View
                     style={[
                       styles.summaryIconBg,
@@ -264,7 +269,12 @@ export default function TransactionsScreen() {
                     />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.summaryCardLabel}>
+                    <Text
+                      style={[
+                        styles.summaryCardLabel,
+                        { color: c.neutral.gray500 },
+                      ]}
+                    >
                       Gastado este mes
                     </Text>
                     <Text
@@ -279,7 +289,12 @@ export default function TransactionsScreen() {
                   </View>
                 </View>
 
-                <View style={styles.summaryCard}>
+                <View
+                  style={[
+                    styles.summaryCard,
+                    { backgroundColor: c.neutral.white },
+                  ]}
+                >
                   <View
                     style={[
                       styles.summaryIconBg,
@@ -293,7 +308,12 @@ export default function TransactionsScreen() {
                     />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.summaryCardLabel}>
+                    <Text
+                      style={[
+                        styles.summaryCardLabel,
+                        { color: c.neutral.gray500 },
+                      ]}
+                    >
                       Ingresado este mes
                     </Text>
                     <Text
