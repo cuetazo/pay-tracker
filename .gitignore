@@ -11,6 +11,7 @@ tracker-pay/src/.env
 dist/
 web-build/
 expo-env.d.ts
+.idea/
 
 # Native
 .kotlin/
