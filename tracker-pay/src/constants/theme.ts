@@ -94,3 +94,39 @@ export const Shadow = {
     elevation: 5,
   },
 } as const;
+
+export const DarkColors = {
+  primary: {
+    main: "#38BDF8", // sky-400
+    light: "#7DD3FC", // sky-300
+    dark: "#0284C7", // sky-600
+    soft: "#0C1A2A", // dark soft bg
+    background: "#0F172A", // slate-900
+  },
+  accent: {
+    income: "#34D399", // emerald-400
+    expense: "#FB7185", // rose-400
+  },
+  neutral: {
+    white: "#0F172A", // inverted: dark bg
+    black: "#F8FAFC", // inverted: light text
+    gray50: "#1E293B", // slate-800
+    gray100: "#1E293B",
+    gray200: "#334155", // slate-700
+    gray300: "#475569", // slate-600
+    gray400: "#94A3B8", // same
+    gray500: "#CBD5E1", // slate-300
+    gray700: "#E2E8F0", // slate-200
+    gray900: "#F1F5F9", // slate-100
+  },
+  status: {
+    error: "#F87171",
+    warning: "#FBBF24",
+    success: "#34D399",
+    info: "#60A5FA",
+  },
+} as const;
+
+/** Returns the correct color palette for the given mode */
+export const getColors = (isDark: boolean) => (isDark ? DarkColors : Colors);
+

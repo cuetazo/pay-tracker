@@ -8,6 +8,7 @@ import {
   Shadow,
   Spacing,
 } from "@/constants/theme";
+import { useAppColors } from "@/hooks/useAppColors";
 import { Database } from "@/services/db/schema";
 import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/stores/supabase";
@@ -46,6 +47,7 @@ const MONTH_NAMES = [
 
 export default function HomeScreen() {
   const { user } = useAuthStore();
+  const c = useAppColors();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -111,11 +113,11 @@ export default function HomeScreen() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <View style={styles.safeArea}>
+    <View style={[styles.safeArea, { backgroundColor: c.primary.background }]}>
       {loading ? (
         <ActivityIndicator
           size="large"
-          color={Colors.primary.main}
+          color={c.primary.main}
           style={{ flex: 1, justifyContent: "center" }}
         />
       ) : (
@@ -130,7 +132,7 @@ export default function HomeScreen() {
                 (item.type as "income" | "expense") ?? "expense"
               }
               category={
-                categories.find((c) => c.id === item.categoryId)?.name ??
+                categories.find((cat) => cat.id === item.categoryId)?.name ??
                 "Sin categoría"
               }
               destinatary={item.destinatary ?? "—"}
@@ -149,19 +151,23 @@ export default function HomeScreen() {
               <MaterialCommunityIcons
                 name="cash-remove"
                 size={48}
-                color={Colors.neutral.gray300}
+                color={c.neutral.gray300}
               />
-              <Text style={styles.emptyText}>Sin movimientos recientes</Text>
+              <Text style={[styles.emptyText, { color: c.neutral.gray500 }]}>
+                Sin movimientos recientes
+              </Text>
             </View>
           }
           ListFooterComponent={<View style={{ height: 32 }} />}
           ListHeaderComponent={
             <View style={styles.listHeader}>
               {/* Greeting */}
-              <Text style={styles.greeting}>
+              <Text style={[styles.greeting, { color: c.neutral.gray500 }]}>
                 Bienvenido {user?.name?.split(" ")[0]}!
               </Text>
-              <Text style={styles.pageTitle}>Tus finanzas</Text>
+              <Text style={[styles.pageTitle, { color: c.neutral.gray900 }]}>
+                Tus finanzas
+              </Text>
 
               {/* Balance card */}
               <View style={styles.balanceCard}>
@@ -192,13 +198,31 @@ export default function HomeScreen() {
 
               {/* Budget progress card */}
               {spendingLimit > 0 && (
-                <View style={styles.budgetCard}>
+                <View
+                  style={[
+                    styles.budgetCard,
+                    {
+                      backgroundColor:
+                        c.neutral.white === "#0F172A"
+                          ? "#1E293B"
+                          : Colors.neutral.white,
+                    },
+                  ]}
+                >
                   <View style={styles.budgetCardHeader}>
-                    <Text style={styles.budgetCardTitle}>Gastos este mes</Text>
+                    <Text
+                      style={[
+                        styles.budgetCardTitle,
+                        { color: c.neutral.gray900 },
+                      ]}
+                    >
+                      Gastos este mes
+                    </Text>
                     <Text
                       style={[
                         styles.budgetCardRemaining,
-                        overBudget && { color: Colors.accent.expense },
+                        { color: c.neutral.gray400 },
+                        overBudget && { color: c.accent.expense },
                       ]}
                     >
                       {overBudget
@@ -207,32 +231,52 @@ export default function HomeScreen() {
                     </Text>
                   </View>
 
-                  <View style={styles.progressTrack}>
+                  <View
+                    style={[
+                      styles.progressTrack,
+                      { backgroundColor: c.neutral.gray100 },
+                    ]}
+                  >
                     <View
                       style={[
                         styles.progressFill,
                         {
                           width: `${percentUsed * 100}%` as any,
                           backgroundColor: overBudget
-                            ? Colors.accent.expense
-                            : Colors.primary.main,
+                            ? c.accent.expense
+                            : c.primary.main,
                         },
                       ]}
                     />
                   </View>
 
                   <View style={styles.budgetLabels}>
-                    <Text style={styles.budgetLabelText}>
+                    <Text
+                      style={[
+                        styles.budgetLabelText,
+                        { color: c.neutral.gray400 },
+                      ]}
+                    >
                       {fmt(currentSpending)}
                     </Text>
-                    <Text style={styles.budgetLabelText}>
+                    <Text
+                      style={[
+                        styles.budgetLabelText,
+                        { color: c.neutral.gray400 },
+                      ]}
+                    >
                       {fmt(spendingLimit)}
                     </Text>
                   </View>
 
                   {/* Transactions preview inside budget card */}
                   {transactions.length > 0 && (
-                    <View style={styles.recentInCard}>
+                    <View
+                      style={[
+                        styles.recentInCard,
+                        { borderTopColor: c.neutral.gray100 },
+                      ]}
+                    >
                       {transactions.slice(0, 2).map((item) => (
                         <TransactionCard
                           key={item.id}
@@ -241,8 +285,9 @@ export default function HomeScreen() {
                             (item.type as "income" | "expense") ?? "expense"
                           }
                           category={
-                            categories.find((c) => c.id === item.categoryId)
-                              ?.name ?? "Sin categoría"
+                            categories.find(
+                              (cat) => cat.id === item.categoryId,
+                            )?.name ?? "Sin categoría"
                           }
                           destinatary={item.destinatary ?? "—"}
                           date={
@@ -264,7 +309,14 @@ export default function HomeScreen() {
               {/* Section label */}
               {transactions.length > 0 && (
                 <View style={styles.sectionRow}>
-                  <Text style={styles.sectionTitle}>Últimos movimientos</Text>
+                  <Text
+                    style={[
+                      styles.sectionTitle,
+                      { color: c.neutral.gray900 },
+                    ]}
+                  >
+                    Últimos movimientos
+                  </Text>
                 </View>
               )}
             </View>
@@ -277,20 +329,18 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: Colors.primary.background },
+  safeArea: { flex: 1 },
   listContent: { paddingHorizontal: Spacing.xl },
   listHeader: { paddingTop: Spacing.xl },
 
   // ── Greeting ─────────────────────────────────────────────────────
   greeting: {
     fontSize: FontSize.base,
-    color: Colors.neutral.gray500,
     marginBottom: Spacing.xs,
   },
   pageTitle: {
     fontSize: FontSize.display,
     fontWeight: FontWeight.extrabold,
-    color: Colors.neutral.gray900,
     marginBottom: Spacing.lg,
   },
 
@@ -361,7 +411,6 @@ const styles = StyleSheet.create({
 
   // ── Budget card ──────────────────────────────────────────────────
   budgetCard: {
-    backgroundColor: Colors.neutral.white,
     borderRadius: BorderRadius.xl,
     padding: Spacing.xl,
     marginBottom: Spacing.md,
@@ -376,16 +425,13 @@ const styles = StyleSheet.create({
   budgetCardTitle: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray900,
   },
   budgetCardRemaining: {
     fontSize: FontSize.sm,
-    color: Colors.neutral.gray400,
     fontWeight: FontWeight.medium,
   },
   progressTrack: {
     height: 8,
-    backgroundColor: Colors.neutral.gray100,
     borderRadius: BorderRadius.full,
     overflow: "hidden",
     marginBottom: Spacing.xs,
@@ -401,11 +447,9 @@ const styles = StyleSheet.create({
   },
   budgetLabelText: {
     fontSize: FontSize.sm,
-    color: Colors.neutral.gray400,
   },
   recentInCard: {
     borderTopWidth: 1,
-    borderTopColor: Colors.neutral.gray100,
     paddingTop: Spacing.md,
     gap: Spacing.xs,
   },
@@ -418,7 +462,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray900,
   },
 
   // ── Empty ────────────────────────────────────────────────────────
@@ -430,6 +473,5 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FontSize.md,
     fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray500,
   },
 });

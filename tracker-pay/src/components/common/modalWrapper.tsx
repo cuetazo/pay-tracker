@@ -1,10 +1,13 @@
 // components/ModalWrapper.tsx
+import { Colors } from "@/constants/theme";
+import { useAppColors } from "@/hooks/useAppColors";
 import { useModal } from "@/stores/modalStore";
 import React from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export const ModalWrapper = () => {
   const { isVisible, component, closeModal, config } = useModal();
+  const c = useAppColors();
 
   if (!component || !isVisible) return null;
 
@@ -21,6 +24,10 @@ export const ModalWrapper = () => {
     }
   };
 
+  const cardBg =
+    c.neutral.white === "#0F172A" ? "#1E293B" : Colors.neutral.white;
+  const fullscreenBg = c.primary.background;
+
   // Modal transparente (centrado, pequeño)
   if (modalType === "transparent") {
     return (
@@ -36,9 +43,9 @@ export const ModalWrapper = () => {
             activeOpacity={1}
             onPress={closeModal}
           />
-          <View style={styles.transparentView}>
+          <View style={[styles.transparentView, { backgroundColor: cardBg }]}>
             <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-              <Text style={styles.closeText}>✕</Text>
+              <Text style={[styles.closeText, { color: c.neutral.gray400 }]}>✕</Text>
             </TouchableOpacity>
             {renderComponent()}
           </View>
@@ -56,7 +63,7 @@ export const ModalWrapper = () => {
         visible={isVisible}
         onRequestClose={closeModal}
       >
-        <View style={styles.fullscreenContainer}>
+        <View style={[styles.fullscreenContainer, { backgroundColor: fullscreenBg }]}>
           {renderComponent()}
         </View>
       </Modal>
@@ -83,7 +90,6 @@ const styles = StyleSheet.create({
   },
   transparentView: {
     width: "80%",
-    backgroundColor: "white",
     borderRadius: 20,
     padding: 20,
     alignItems: "center",
@@ -106,11 +112,9 @@ const styles = StyleSheet.create({
   closeText: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#666",
   },
   // ─── Fullscreen Modal ───────────────────────────────────────────
   fullscreenContainer: {
     flex: 1,
-    backgroundColor: "#fff",
   },
 });

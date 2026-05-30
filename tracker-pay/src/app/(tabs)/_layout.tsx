@@ -1,5 +1,5 @@
-import { Colors } from "@/constants/theme_test";
-import Entypo from "@expo/vector-icons/Entypo";
+import { Colors } from "@/constants/theme";
+import { useAppColors } from "@/hooks/useAppColors";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -9,6 +9,7 @@ import { useAuthStore } from "../../stores/authStore";
 export default function ProtectedLayout() {
   const { isLoggedIn } = useAuthStore();
   const router = useRouter();
+  const c = useAppColors();
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -20,17 +21,18 @@ export default function ProtectedLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primary.main,
+        tabBarActiveTintColor: c.primary.main,
         animation: "fade",
         sceneStyle: {
-          //backgroundColor: Colors.neutral.gray100,
+          backgroundColor: c.primary.background,
         },
         headerStyle: {},
         tabBarStyle: {
           borderTopWidth: 0.8,
+          borderTopColor: c.neutral.gray200,
+          backgroundColor: c.neutral.white === "#0F172A" ? "#0F172A" : Colors.neutral.white,
         },
-        tabBarInactiveTintColor: Colors.neutral.gray500,
-        //tabBarActiveBackgroundColor: "teal",
+        tabBarInactiveTintColor: c.neutral.gray400,
       }}
     >
       <Tabs.Screen
@@ -63,12 +65,11 @@ export default function ProtectedLayout() {
         }}
       />
       <Tabs.Screen
-        name="fourth"
+        name="account"
         options={{
-          //headerStyle: styles.container,
-          title: "Fourth",
+          title: "Cuenta",
           tabBarIcon: ({ color, size }) => (
-            <Entypo name="credit-card" size={24} color={color} />
+            <FontAwesome name="user" size={24} color={color} />
           ),
         }}
       />

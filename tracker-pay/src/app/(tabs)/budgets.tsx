@@ -8,6 +8,7 @@ import {
   Shadow,
   Spacing,
 } from "@/constants/theme";
+import { useAppColors } from "@/hooks/useAppColors";
 import { useModal } from "@/hooks/useModal";
 import { Database } from "@/services/db/schema";
 import { useAuthStore } from "@/stores/authStore";
@@ -71,6 +72,7 @@ const INTERVALS: Record<string, string> = {
 export default function BudgetsScreen() {
   const { user } = useAuthStore();
   const { openModal } = useModal();
+  const c = useAppColors();
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,16 +145,16 @@ export default function BudgetsScreen() {
   };
 
   // ─── Totals ───────────────────────────────────────────────────────────────
-  const totalBudget = categories.reduce((s, c) => s + (c.limit_amount ?? 0), 0);
-  const totalSpent = categories.reduce((s, c) => s + spentForCategory(c.id), 0);
+  const totalBudget = categories.reduce((s, cat) => s + (cat.limit_amount ?? 0), 0);
+  const totalSpent = categories.reduce((s, cat) => s + spentForCategory(cat.id), 0);
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <View style={styles.safeArea}>
+    <View style={[styles.safeArea, { backgroundColor: c.primary.background }]}>
       {loading ? (
         <ActivityIndicator
           size="large"
-          color={Colors.primary.main}
+          color={c.primary.main}
           style={{ flex: 1, justifyContent: "center" }}
         />
       ) : (
@@ -167,7 +169,15 @@ export default function BudgetsScreen() {
 
             return (
               <TouchableOpacity
-                style={styles.categoryCard}
+                style={[
+                  styles.categoryCard,
+                  {
+                    backgroundColor:
+                      c.neutral.white === "#0F172A"
+                        ? "#1E293B"
+                        : Colors.neutral.white,
+                  },
+                ]}
                 onLongPress={() =>
                   Alert.alert(item.name, "", [
                     { text: "Editar", onPress: () => openEdit(item) },
@@ -187,20 +197,25 @@ export default function BudgetsScreen() {
                       styles.iconBg,
                       {
                         backgroundColor:
-                          (item.color ?? Colors.primary.main) + "22",
+                          (item.color ?? c.primary.main) + "22",
                       },
                     ]}
                   >
                     <MaterialCommunityIcons
                       name={(item.icon ?? "wallet") as any}
                       size={26}
-                      color={item.color ?? Colors.primary.main}
+                      color={item.color ?? c.primary.main}
                     />
                   </View>
                   <View style={styles.cardInfo}>
-                    <Text style={styles.categoryName}>{item.name}</Text>
+                    <Text style={[styles.categoryName, { color: c.neutral.gray900 }]}>
+                      {item.name}
+                    </Text>
                     {item.description ? (
-                      <Text style={styles.categoryDesc} numberOfLines={1}>
+                      <Text
+                        style={[styles.categoryDesc, { color: c.neutral.gray500 }]}
+                        numberOfLines={1}
+                      >
                         {item.description}
                       </Text>
                     ) : null}
@@ -209,28 +224,36 @@ export default function BudgetsScreen() {
                     <Text
                       style={[
                         styles.spentAmount,
-                        overBudget && { color: Colors.accent.expense },
+                        { color: c.accent.income },
+                        overBudget && { color: c.accent.expense },
                       ]}
                     >
                       {fmt(spent)}
                     </Text>
                     {limit > 0 && (
-                      <Text style={styles.limitAmount}>{fmt(limit)}</Text>
+                      <Text style={[styles.limitAmount, { color: c.neutral.gray400 }]}>
+                        {fmt(limit)}
+                      </Text>
                     )}
                   </View>
                 </View>
 
                 {limit > 0 && (
                   <>
-                    <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressTrack,
+                        { backgroundColor: c.neutral.gray100 },
+                      ]}
+                    >
                       <View
                         style={[
                           styles.progressFill,
                           {
                             width: `${pct * 100}%` as any,
                             backgroundColor: overBudget
-                              ? Colors.accent.expense
-                              : (item.color ?? Colors.primary.main),
+                              ? c.accent.expense
+                              : (item.color ?? c.primary.main),
                           },
                         ]}
                       />
@@ -239,15 +262,18 @@ export default function BudgetsScreen() {
                       <Text
                         style={[
                           styles.progressPct,
-                          overBudget && { color: Colors.accent.expense },
+                          { color: c.neutral.gray500 },
+                          overBudget && { color: c.accent.expense },
                         ]}
                       >
                         {Math.round(pct * 100)}% usado
                       </Text>
                       {overBudget ? (
-                        <Text style={styles.overBudgetText}>Excedido</Text>
+                        <Text style={[styles.overBudgetText, { color: c.accent.expense }]}>
+                          Excedido
+                        </Text>
                       ) : (
-                        <Text style={styles.remainingText}>
+                        <Text style={[styles.remainingText, { color: c.neutral.gray500 }]}>
                           {fmt(limit - spent)} restante
                         </Text>
                       )}
@@ -256,8 +282,13 @@ export default function BudgetsScreen() {
                 )}
 
                 {item.limit_interval && limit > 0 && (
-                  <View style={styles.intervalChip}>
-                    <Text style={styles.intervalChipText}>
+                  <View
+                    style={[
+                      styles.intervalChip,
+                      { backgroundColor: c.neutral.gray100 },
+                    ]}
+                  >
+                    <Text style={[styles.intervalChipText, { color: c.neutral.gray500 }]}>
                       {INTERVALS[item.limit_interval] ?? item.limit_interval}
                     </Text>
                   </View>
@@ -270,10 +301,12 @@ export default function BudgetsScreen() {
               <MaterialCommunityIcons
                 name="piggy-bank-outline"
                 size={56}
-                color={Colors.neutral.gray300}
+                color={c.neutral.gray300}
               />
-              <Text style={styles.emptyText}>Sin categorias aun</Text>
-              <Text style={styles.emptySubtext}>
+              <Text style={[styles.emptyText, { color: c.neutral.gray500 }]}>
+                Sin categorias aun
+              </Text>
+              <Text style={[styles.emptySubtext, { color: c.neutral.gray400 }]}>
                 Toca + para crear tu primera
               </Text>
             </View>
@@ -281,8 +314,10 @@ export default function BudgetsScreen() {
           ListFooterComponent={<View style={{ height: 100 }} />}
           ListHeaderComponent={
             <View style={styles.listHeader}>
-              <Text style={styles.headerTitle}>Consumo</Text>
-              <Text style={styles.headerSubtitle}>
+              <Text style={[styles.headerTitle, { color: c.neutral.gray900 }]}>
+                Consumo
+              </Text>
+              <Text style={[styles.headerSubtitle, { color: c.neutral.gray500 }]}>
                 Gestiona tus categorias de gastos
               </Text>
 
@@ -310,7 +345,7 @@ export default function BudgetsScreen() {
 
       {/* FAB */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: c.primary.main }]}
         onPress={openCreate}
         activeOpacity={0.85}
       >
@@ -358,11 +393,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FontSize.display,
     fontWeight: FontWeight.extrabold,
-    color: Colors.neutral.gray900,
   },
   headerSubtitle: {
     fontSize: FontSize.md,
-    color: Colors.neutral.gray500,
     marginTop: Spacing.xs,
     marginBottom: Spacing.lg,
   },
@@ -404,11 +437,10 @@ const styles = StyleSheet.create({
   totalCardValue: {
     fontSize: FontSize.xxxl,
     fontWeight: FontWeight.extrabold,
-    color: Colors.neutral.white,
+    color: "#FFFFFF",
   },
   // ── Category card ───────────────────────────────────────────────
   categoryCard: {
-    backgroundColor: Colors.neutral.white,
     borderRadius: BorderRadius.md,
     padding: Spacing.xxl,
     marginBottom: Spacing.sm,
@@ -431,27 +463,22 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray900,
   },
   categoryDesc: {
     fontSize: FontSize.sm,
-    color: Colors.neutral.gray500,
     marginTop: 2,
   },
   cardAmounts: { alignItems: "flex-end" },
   spentAmount: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.bold,
-    color: Colors.accent.income,
   },
   limitAmount: {
     fontSize: FontSize.sm,
-    color: Colors.neutral.gray400,
     marginTop: 2,
   },
   progressTrack: {
     height: 7,
-    backgroundColor: Colors.neutral.gray100,
     borderRadius: BorderRadius.full,
     overflow: "hidden",
     marginBottom: Spacing.xs,
@@ -467,20 +494,16 @@ const styles = StyleSheet.create({
   },
   progressPct: {
     fontSize: FontSize.sm,
-    color: Colors.neutral.gray500,
   },
   overBudgetText: {
     fontSize: FontSize.sm,
-    color: Colors.accent.expense,
     fontWeight: FontWeight.semibold,
   },
   remainingText: {
     fontSize: FontSize.sm,
-    color: Colors.neutral.gray500,
   },
   intervalChip: {
     alignSelf: "flex-start",
-    backgroundColor: Colors.neutral.gray100,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: BorderRadius.full,
@@ -488,7 +511,6 @@ const styles = StyleSheet.create({
   },
   intervalChipText: {
     fontSize: FontSize.sm,
-    color: Colors.neutral.gray500,
   },
   emptyState: {
     alignItems: "center",
@@ -498,11 +520,9 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray500,
   },
   emptySubtext: {
     fontSize: FontSize.md,
-    color: Colors.neutral.gray400,
   },
   fab: {
     position: "absolute",
@@ -511,13 +531,12 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: BorderRadius.full,
-    backgroundColor: "#1E82F4",
     justifyContent: "center",
     alignItems: "center",
     ...Shadow.lg,
   },
   // ── Modal ───────────────────────────────────────────────────────
-  modalContainer: { flex: 1, backgroundColor: Colors.primary.background },
+  modalContainer: { flex: 1 },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",

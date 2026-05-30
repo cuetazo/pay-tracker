@@ -7,6 +7,7 @@ import {
   Shadow,
   Spacing,
 } from "@/constants/theme";
+import { useAppColors } from "@/hooks/useAppColors";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -28,6 +29,7 @@ export default function TransactionCard({
   date,
   flat = false,
 }: Props) {
+  const c = useAppColors();
   const isIncome = transaction_type === "income";
 
   const fmt = (n: number) =>
@@ -36,32 +38,41 @@ export default function TransactionCard({
       maximumFractionDigits: 2,
     })}`;
 
+  const cardBg =
+    c.neutral.white === "#0F172A" ? "#1E293B" : Colors.neutral.white;
+
   return (
-    <View style={[styles.card, flat && styles.cardFlat]}>
+    <View
+      style={[
+        styles.card,
+        !flat && { backgroundColor: cardBg },
+        flat && styles.cardFlat,
+      ]}
+    >
       {/* Icon */}
       <View
         style={[
           styles.iconBg,
           {
             backgroundColor: isIncome
-              ? Colors.accent.income + "22"
-              : Colors.accent.expense + "22",
+              ? c.accent.income + "22"
+              : c.accent.expense + "22",
           },
         ]}
       >
         <MaterialCommunityIcons
           name={isIncome ? "arrow-down-left" : "arrow-up-right"}
           size={22}
-          color={isIncome ? Colors.accent.income : Colors.accent.expense}
+          color={isIncome ? c.accent.income : c.accent.expense}
         />
       </View>
 
       {/* Info */}
       <View style={styles.info}>
-        <Text style={styles.destinatary} numberOfLines={1}>
+        <Text style={[styles.destinatary, { color: c.neutral.gray900 }]} numberOfLines={1}>
           {destinatary}
         </Text>
-        <Text style={styles.meta} numberOfLines={1}>
+        <Text style={[styles.meta, { color: c.neutral.gray400 }]} numberOfLines={1}>
           {date ? `${date} · ` : ""}
           {category}
         </Text>
@@ -71,7 +82,7 @@ export default function TransactionCard({
       <Text
         style={[
           styles.amount,
-          { color: isIncome ? Colors.accent.income : Colors.accent.expense },
+          { color: isIncome ? c.accent.income : c.accent.expense },
         ]}
       >
         {isIncome ? "+ " : "- "}
@@ -85,7 +96,6 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.neutral.white,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.lg,
@@ -116,11 +126,9 @@ const styles = StyleSheet.create({
   destinatary: {
     fontSize: FontSize.base,
     fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray900,
   },
   meta: {
     fontSize: FontSize.sm,
-    color: Colors.neutral.gray400,
   },
   amount: {
     fontSize: FontSize.base,
