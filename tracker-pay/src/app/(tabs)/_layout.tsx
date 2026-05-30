@@ -1,4 +1,3 @@
-import AvatarMenu from "@/components/AvatarMenu";
 import { Colors } from "@/constants/theme_test";
 import Entypo from "@expo/vector-icons/Entypo";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -6,7 +5,7 @@ import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Tabs, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { useAuthStore } from "../../utils/authStore";
+import { useAuthStore } from "../../stores/authStore";
 export default function ProtectedLayout() {
   const { isLoggedIn } = useAuthStore();
   const router = useRouter();
@@ -30,7 +29,6 @@ export default function ProtectedLayout() {
         tabBarStyle: {
           borderTopWidth: 0.8,
         },
-        headerRight: () => <AvatarMenu />,
         tabBarInactiveTintColor: Colors.neutral.gray500,
         //tabBarActiveBackgroundColor: "teal",
       }}

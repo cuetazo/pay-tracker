@@ -1,294 +1,435 @@
-// app/(protected)/profile.tsx
+// app/(protected)/index.tsx  (Home)
+import TransactionCard from "@/components/transaction/TransactionCard";
 import {
   BorderRadius,
   Colors,
   FontSize,
   FontWeight,
+  Shadow,
   Spacing,
 } from "@/constants/theme";
-import { useAuthStore } from "@/utils/authStore";
-import { supabase } from "@/utils/supabase";
+import { Database } from "@/services/db/schema";
+import { useAuthStore } from "@/stores/authStore";
+import { supabase } from "@/stores/supabase";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  ScrollView,
+  FlatList,
   StyleSheet,
   Text,
-  TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
+type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
+type Category = Database["public"]["Tables"]["category"]["Row"];
 type Profile = {
   monthly_income: number;
   monthly_spending_limit: number;
   current_month_spending: number;
-  onboarding_completed: boolean;
 };
 
-export default function ProfileScreen() {
-  const { user, SignOut } = useAuthStore();
+const MONTH_NAMES = [
+  "ENERO",
+  "FEBRERO",
+  "MARZO",
+  "ABRIL",
+  "MAYO",
+  "JUNIO",
+  "JULIO",
+  "AGOSTO",
+  "SEPTIEMBRE",
+  "OCTUBRE",
+  "NOVIEMBRE",
+  "DICIEMBRE",
+];
+
+export default function HomeScreen() {
+  const { user } = useAuthStore();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
+  const currentMonth = MONTH_NAMES[new Date().getMonth()];
 
-  const fetchProfile = async () => {
+  // ─── Fetch ────────────────────────────────────────────────────────────────
+  const fetchData = useCallback(async () => {
     if (!user?.id) return;
+    setLoading(true);
 
-    const { data, error } = await supabase
-      .from("profiles")
-      .select(
-        "monthly_income, monthly_spending_limit, current_month_spending, onboarding_completed",
-      )
-      .eq("id", user.id)
-      .single();
+    const [txRes, catRes, profileRes] = await Promise.all([
+      supabase
+        .from("transactions")
+        .select("*")
+        .eq("userId", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabase.from("category").select("*").eq("userId", user.id),
+      supabase
+        .from("profiles")
+        .select(
+          "monthly_income, monthly_spending_limit, current_month_spending",
+        )
+        .eq("id", user.id)
+        .single(),
+    ]);
 
-    if (error) {
-      console.error("Error fetching profile:", error);
-    } else {
-      setProfile(data);
-    }
+    if (txRes.data) setTransactions(txRes.data);
+    if (catRes.data) setCategories(catRes.data);
+    if (profileRes.data) setProfile(profileRes.data);
     setLoading(false);
-  };
+  }, [user?.id]);
 
-  const remainingBudget = profile
-    ? profile.monthly_spending_limit - profile.current_month_spending
-    : 0;
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
+  // ─── Derived values ───────────────────────────────────────────────────────
+  const totalIncome = transactions
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + (t.amount ?? 0), 0);
+
+  const totalExpense = transactions
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + (t.amount ?? 0), 0);
+
+  const totalBalance = totalIncome - totalExpense;
+
+  const spendingLimit = profile?.monthly_spending_limit ?? 0;
+  const currentSpending = profile?.current_month_spending ?? 0;
   const percentUsed =
-    profile && profile.monthly_spending_limit > 0
-      ? (profile.current_month_spending / profile.monthly_spending_limit) * 100
-      : 0;
+    spendingLimit > 0 ? Math.min(currentSpending / spendingLimit, 1) : 0;
+  const remaining = spendingLimit - currentSpending;
+  const overBudget = spendingLimit > 0 && currentSpending > spendingLimit;
 
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color={Colors.primary.main} />
-      </View>
-    );
-  }
+  const fmt = (n: number) =>
+    `S/ ${n.toLocaleString("es-PE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
 
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.avatar}>
-          {user?.photo ? (
-            <Text style={styles.avatarText}>{user.name?.charAt(0)}</Text>
-          ) : (
-            <MaterialCommunityIcons
-              name="account"
-              size={50}
-              color={Colors.primary.main}
+    <View style={styles.safeArea}>
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color={Colors.primary.main}
+          style={{ flex: 1, justifyContent: "center" }}
+        />
+      ) : (
+        <FlatList
+          data={transactions}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TransactionCard
+              amount={item.amount ?? 0}
+              transaction_type={
+                (item.type as "income" | "expense") ?? "expense"
+              }
+              category={
+                categories.find((c) => c.id === item.categoryId)?.name ??
+                "Sin categoría"
+              }
+              destinatary={item.destinatary ?? "—"}
+              date={
+                item.created_at
+                  ? new Date(item.created_at).toLocaleDateString("es-PE", {
+                      day: "2-digit",
+                      month: "short",
+                    })
+                  : undefined
+              }
             />
           )}
-        </View>
-        <Text style={styles.name}>{user?.name}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
-      </View>
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons
+                name="cash-remove"
+                size={48}
+                color={Colors.neutral.gray300}
+              />
+              <Text style={styles.emptyText}>Sin movimientos recientes</Text>
+            </View>
+          }
+          ListFooterComponent={<View style={{ height: 32 }} />}
+          ListHeaderComponent={
+            <View style={styles.listHeader}>
+              {/* Greeting */}
+              <Text style={styles.greeting}>
+                Bienvenido {user?.name?.split(" ")[0]}!
+              </Text>
+              <Text style={styles.pageTitle}>Tus finanzas</Text>
 
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <MaterialCommunityIcons
-            name="cash"
-            size={24}
-            color={Colors.accent.income}
-          />
-          <Text style={styles.statLabel}>Ingreso Mensual</Text>
-          <Text style={styles.statValue}>
-            S/{" "}
-            {profile?.monthly_income?.toLocaleString("es-PE", {
-              minimumFractionDigits: 2,
-            }) ?? 0}
-          </Text>
-        </View>
+              {/* Balance card */}
+              <View style={styles.balanceCard}>
+                <View style={styles.balanceCardDecorCircle} />
+                <View style={styles.balanceCardDecorCircle2} />
 
-        <View style={styles.statCard}>
-          <MaterialCommunityIcons
-            name="wallet"
-            size={24}
-            color={Colors.primary.main}
-          />
-          <Text style={styles.statLabel}>Límite de Gasto</Text>
-          <Text style={styles.statValue}>
-            S/{" "}
-            {profile?.monthly_spending_limit?.toLocaleString("es-PE", {
-              minimumFractionDigits: 2,
-            }) ?? 0}
-          </Text>
-        </View>
+                <Text style={styles.balanceCardLabel}>Balance total</Text>
+                <Text style={styles.balanceCardMonth}>{currentMonth}</Text>
+                <Text style={styles.balanceCardAmount}>
+                  {fmt(totalBalance)}
+                </Text>
 
-        <View style={styles.statCard}>
-          <MaterialCommunityIcons
-            name="trending-down"
-            size={24}
-            color={Colors.accent.expense}
-          />
-          <Text style={styles.statLabel}>Gastado este mes</Text>
-          <Text style={styles.statValue}>
-            S/{" "}
-            {profile?.current_month_spending?.toLocaleString("es-PE", {
-              minimumFractionDigits: 2,
-            }) ?? 0}
-          </Text>
-        </View>
+                <View style={styles.balancePillsRow}>
+                  <View style={styles.balancePill}>
+                    <Text style={styles.balancePillLabel}>Ingresos</Text>
+                    <Text style={styles.balancePillValue}>
+                      {fmt(totalIncome)}
+                    </Text>
+                  </View>
+                  <View style={styles.balancePill}>
+                    <Text style={styles.balancePillLabel}>Gastos</Text>
+                    <Text style={styles.balancePillValue}>
+                      -{fmt(totalExpense)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
 
-        <View style={styles.statCard}>
-          <MaterialCommunityIcons
-            name="piggy-bank"
-            size={24}
-            color={Colors.accent.income}
-          />
-          <Text style={styles.statLabel}>Presupuesto Restante</Text>
-          <Text
-            style={[
-              styles.statValue,
-              remainingBudget < 0 && { color: Colors.accent.expense },
-            ]}
-          >
-            S/{" "}
-            {remainingBudget.toLocaleString("es-PE", {
-              minimumFractionDigits: 2,
-            })}
-          </Text>
-        </View>
-      </View>
+              {/* Budget progress card */}
+              {spendingLimit > 0 && (
+                <View style={styles.budgetCard}>
+                  <View style={styles.budgetCardHeader}>
+                    <Text style={styles.budgetCardTitle}>Gastos este mes</Text>
+                    <Text
+                      style={[
+                        styles.budgetCardRemaining,
+                        overBudget && { color: Colors.accent.expense },
+                      ]}
+                    >
+                      {overBudget
+                        ? "Excedido"
+                        : `${Math.round((1 - percentUsed) * 100)}% restante`}
+                    </Text>
+                  </View>
 
-      {/* Progress bar */}
-      <View style={styles.progressSection}>
-        <Text style={styles.progressLabel}>
-          Progreso del presupuesto mensual
-        </Text>
-        <View style={styles.progressTrack}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                width: `${Math.min(percentUsed, 100)}%`,
-                backgroundColor:
-                  percentUsed > 90
-                    ? Colors.accent.expense
-                    : Colors.accent.income,
-              },
-            ]}
-          />
-        </View>
-        <Text style={styles.progressText}>{percentUsed.toFixed(1)}% usado</Text>
-      </View>
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${percentUsed * 100}%` as any,
+                          backgroundColor: overBudget
+                            ? Colors.accent.expense
+                            : Colors.primary.main,
+                        },
+                      ]}
+                    />
+                  </View>
 
-      <TouchableOpacity style={styles.signOutButton} onPress={SignOut}>
-        <MaterialCommunityIcons name="logout" size={20} color="white" />
-        <Text style={styles.signOutText}>Cerrar Sesión</Text>
-      </TouchableOpacity>
-    </ScrollView>
+                  <View style={styles.budgetLabels}>
+                    <Text style={styles.budgetLabelText}>
+                      {fmt(currentSpending)}
+                    </Text>
+                    <Text style={styles.budgetLabelText}>
+                      {fmt(spendingLimit)}
+                    </Text>
+                  </View>
+
+                  {/* Transactions preview inside budget card */}
+                  {transactions.length > 0 && (
+                    <View style={styles.recentInCard}>
+                      {transactions.slice(0, 2).map((item) => (
+                        <TransactionCard
+                          key={item.id}
+                          amount={item.amount ?? 0}
+                          transaction_type={
+                            (item.type as "income" | "expense") ?? "expense"
+                          }
+                          category={
+                            categories.find((c) => c.id === item.categoryId)
+                              ?.name ?? "Sin categoría"
+                          }
+                          destinatary={item.destinatary ?? "—"}
+                          date={
+                            item.created_at
+                              ? new Date(item.created_at).toLocaleDateString(
+                                  "es-PE",
+                                  { day: "2-digit", month: "short" },
+                                )
+                              : undefined
+                          }
+                          flat
+                        />
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Section label */}
+              {transactions.length > 0 && (
+                <View style={styles.sectionRow}>
+                  <Text style={styles.sectionTitle}>Últimos movimientos</Text>
+                </View>
+              )}
+            </View>
+          }
+          contentContainerStyle={styles.listContent}
+        />
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.primary.background,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  header: {
-    alignItems: "center",
-    padding: Spacing.xxl,
-    backgroundColor: Colors.neutral.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.neutral.gray100,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary.soft,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: Spacing.md,
-  },
-  avatarText: {
-    fontSize: 32,
-    fontWeight: FontWeight.bold,
-    color: Colors.primary.main,
-  },
-  name: {
-    fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
-    color: Colors.neutral.gray900,
+  safeArea: { flex: 1, backgroundColor: Colors.primary.background },
+  listContent: { paddingHorizontal: Spacing.xl },
+  listHeader: { paddingTop: Spacing.xl },
+
+  // ── Greeting ─────────────────────────────────────────────────────
+  greeting: {
+    fontSize: FontSize.base,
+    color: Colors.neutral.gray500,
     marginBottom: Spacing.xs,
   },
-  email: {
-    fontSize: FontSize.sm,
-    color: Colors.neutral.gray500,
+  pageTitle: {
+    fontSize: FontSize.display,
+    fontWeight: FontWeight.extrabold,
+    color: Colors.neutral.gray900,
+    marginBottom: Spacing.lg,
   },
-  statsContainer: {
+
+  // ── Balance card ─────────────────────────────────────────────────
+  balanceCard: {
+    backgroundColor: "#3282DE",
+    borderRadius: BorderRadius.xl,
     padding: Spacing.xl,
-    gap: Spacing.md,
+    marginBottom: Spacing.md,
+    overflow: "hidden",
+    ...Shadow.lg,
   },
-  statCard: {
-    backgroundColor: Colors.neutral.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.md,
+  balanceCardDecorCircle: {
+    position: "absolute",
+    right: -50,
+    top: -50,
+    width: 160,
+    height: 160,
+    borderRadius: 100,
+    backgroundColor: "rgba(255,255,255,0.07)",
   },
-  statLabel: {
-    flex: 1,
+  balanceCardDecorCircle2: {
+    position: "absolute",
+    left: -30,
+    bottom: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 100,
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+  balanceCardLabel: {
+    color: "rgba(255,255,255,0.75)",
     fontSize: FontSize.sm,
+    marginBottom: Spacing.xs,
   },
-  statValue: {
-    fontSize: FontSize.lg,
+  balanceCardMonth: {
+    color: "rgba(255,255,255,0.6)",
+    fontSize: FontSize.xs,
+    letterSpacing: 3,
+    marginBottom: Spacing.sm,
+  },
+  balanceCardAmount: {
+    color: Colors.neutral.white,
+    fontSize: 36,
+    fontWeight: FontWeight.extrabold,
+    marginBottom: Spacing.lg,
+  },
+  balancePillsRow: {
+    flexDirection: "row",
+    gap: Spacing.md,
+  },
+  balancePill: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+  },
+  balancePillLabel: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: FontSize.xs,
+    marginBottom: 4,
+  },
+  balancePillValue: {
+    color: Colors.neutral.white,
+    fontSize: FontSize.md,
     fontWeight: FontWeight.bold,
+  },
+
+  // ── Budget card ──────────────────────────────────────────────────
+  budgetCard: {
+    backgroundColor: Colors.neutral.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    marginBottom: Spacing.md,
+    ...Shadow.md,
+  },
+  budgetCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    marginBottom: Spacing.md,
+  },
+  budgetCardTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray900,
   },
-  progressSection: {
-    backgroundColor: Colors.neutral.white,
-    margin: Spacing.xl,
-    marginTop: 0,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-  },
-  progressLabel: {
+  budgetCardRemaining: {
     fontSize: FontSize.sm,
-    color: Colors.neutral.gray700,
-    marginBottom: Spacing.md,
+    color: Colors.neutral.gray400,
+    fontWeight: FontWeight.medium,
   },
   progressTrack: {
     height: 8,
-    backgroundColor: Colors.neutral.gray200,
+    backgroundColor: Colors.neutral.gray100,
     borderRadius: BorderRadius.full,
     overflow: "hidden",
+    marginBottom: Spacing.xs,
   },
   progressFill: {
     height: "100%",
     borderRadius: BorderRadius.full,
   },
-  progressText: {
-    fontSize: FontSize.xs,
-    color: Colors.neutral.gray500,
-    marginTop: Spacing.xs,
-    textAlign: "right",
-  },
-  signOutButton: {
+  budgetLabels: {
     flexDirection: "row",
-    backgroundColor: Colors.accent.expense,
-    margin: Spacing.xl,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    justifyContent: "center",
+    justifyContent: "space-between",
+    marginBottom: Spacing.lg,
+  },
+  budgetLabelText: {
+    fontSize: FontSize.sm,
+    color: Colors.neutral.gray400,
+  },
+  recentInCard: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.neutral.gray100,
+    paddingTop: Spacing.md,
+    gap: Spacing.xs,
+  },
+
+  // ── Section label ─────────────────────────────────────────────────
+  sectionRow: {
+    marginBottom: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: FontWeight.semibold,
+    color: Colors.neutral.gray900,
+  },
+
+  // ── Empty ────────────────────────────────────────────────────────
+  emptyState: {
     alignItems: "center",
+    paddingVertical: Spacing.xxxl * 2,
     gap: Spacing.sm,
   },
-  signOutText: {
-    color: Colors.neutral.white,
+  emptyText: {
     fontSize: FontSize.md,
     fontWeight: FontWeight.semibold,
+    color: Colors.neutral.gray500,
   },
 });

@@ -1,6 +1,7 @@
 // app/(protected)/transactions.tsx
-import TransactionBigCard from "@/components/TransactionBigCard";
-import TransactionCard from "@/components/TransactionCard";
+import TransactionCard from "@/components/transaction/TransactionCard";
+import { TransactionFormModal } from "@/components/transaction/TransactionFormModal";
+
 import {
   BorderRadius,
   Colors,
@@ -9,9 +10,10 @@ import {
   Shadow,
   Spacing,
 } from "@/constants/theme";
+import { useModal } from "@/hooks/useModal";
 import { Database } from "@/services/db/schema";
-import { useAuthStore } from "@/utils/authStore";
-import { supabase } from "@/utils/supabase";
+import { useAuthStore } from "@/stores/authStore";
+import { supabase } from "@/stores/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useCallback, useEffect, useState } from "react";
@@ -19,12 +21,8 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Modal,
-  ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -32,124 +30,61 @@ import {
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 type Category = Database["public"]["Tables"]["category"]["Row"];
 
-type TransactionForm = {
-  amount: string;
-  destinatary: string;
-  type: "income" | "expense";
-  categoryId: string;
-  origin: string;
-};
-
-const EMPTY_FORM: TransactionForm = {
-  amount: "",
-  destinatary: "",
-  type: "expense",
-  categoryId: "",
-  origin: "",
-};
-
 export default function TransactionsScreen() {
   const { user } = useAuthStore();
+  const { openModal } = useModal();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<TransactionForm>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
-  const fetchTransactions = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("userId", user.id)
-      .order("created_at", { ascending: false });
 
-    if (!error && data) {
-      setTransactions(data);
-    }
+    const [txRes, catRes] = await Promise.all([
+      supabase
+        .from("transactions")
+        .select("*")
+        .eq("userId", user.id)
+        .order("created_at", { ascending: false }),
+      supabase.from("category").select("*").eq("userId", user.id),
+    ]);
+
+    if (txRes.data) setTransactions(txRes.data);
+    if (catRes.data) setCategories(catRes.data);
     setLoading(false);
   }, [user?.id]);
 
-  const fetchCategories = useCallback(async () => {
-    if (!user?.id) return;
-    const { data } = await supabase
-      .from("category")
-      .select("*")
-      .eq("userId", user.id);
-    if (data) setCategories(data);
-  }, [user?.id]);
-
   useEffect(() => {
-    fetchTransactions();
-    fetchCategories();
-  }, [fetchTransactions, fetchCategories]);
+    fetchData();
+  }, [fetchData]);
 
-  // ─── CRUD ────────────────────────────────────────────────────────────────
+  // ─── CRUD ─────────────────────────────────────────────────────────────────
   const openCreate = () => {
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setModalVisible(true);
+    openModal(
+      <TransactionFormModal
+        categories={categories}
+        onSaveSuccess={fetchData}
+      />,
+      { type: "fullscreen" },
+    );
   };
 
-  const openEdit = (t: Transaction) => {
-    setEditingId(t.id);
-    setForm({
-      amount: t.amount?.toString() ?? "",
-      destinatary: t.destinatary ?? "",
-      type: (t.type as "income" | "expense") ?? "expense",
-      categoryId: t.categoryId ?? "",
-      origin: t.origin ?? "",
-    });
-    setModalVisible(true);
+  const openEdit = (transaction: Transaction) => {
+    openModal(
+      <TransactionFormModal
+        transaction={transaction}
+        categories={categories}
+        onSaveSuccess={fetchData}
+      />,
+      { type: "fullscreen" },
+    );
   };
 
-  const handleSave = async () => {
-    if (!user?.id) return;
-    if (!form.amount || isNaN(Number(form.amount))) {
-      Alert.alert("Error", "Ingresa un monto válido.");
-      return;
-    }
-    if (!form.destinatary.trim()) {
-      Alert.alert("Error", "Ingresa un destinatario.");
-      return;
-    }
-
-    setSaving(true);
-    const payload = {
-      amount: Number(form.amount),
-      destinatary: form.destinatary.trim(),
-      type: form.type,
-      categoryId: form.categoryId || null,
-      origin: form.origin.trim() || null,
-      userId: user.id,
-    };
-
-    let error;
-    if (editingId) {
-      ({ error } = await supabase
-        .from("transactions")
-        .update(payload)
-        .eq("id", editingId));
-    } else {
-      ({ error } = await supabase.from("transactions").insert(payload));
-    }
-
-    setSaving(false);
-    if (error) {
-      Alert.alert("Error", error.message);
-      return;
-    }
-    setModalVisible(false);
-    fetchTransactions();
-  };
-
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: string, name: string) => {
     Alert.alert(
-      "Eliminar transacción",
+      `Eliminar "${name}"`,
       "¿Estás seguro? Esta acción no se puede deshacer.",
       [
         { text: "Cancelar", style: "cancel" },
@@ -162,7 +97,7 @@ export default function TransactionsScreen() {
               .delete()
               .eq("id", id);
             if (error) Alert.alert("Error", error.message);
-            else fetchTransactions();
+            else fetchData();
           },
         },
       ],
@@ -181,108 +116,106 @@ export default function TransactionsScreen() {
   const totalBalance = totalIncome - totalExpense;
 
   const fmt = (n: number) =>
-    `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-  // Filtrar categorías por tipo (ingreso/gasto)
-  const filteredCategories = categories.filter((cat) =>
-    form.type === "income" ? cat.type === "income" : cat.type === "expense",
-  );
+    `S/ ${n.toLocaleString("es-PE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <View style={styles.safeArea}>
-      <StatusBar
-        barStyle="dark-content"
-        backgroundColor={Colors.neutral.gray50}
-      />
-
-      <FlatList
-        data={transactions}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onLongPress={() =>
-              Alert.alert("Opciones", item.destinatary ?? "", [
-                { text: "Editar", onPress: () => openEdit(item) },
-                {
-                  text: "Eliminar",
-                  style: "destructive",
-                  onPress: () => handleDelete(item.id),
-                },
-                { text: "Cancelar", style: "cancel" },
-              ])
-            }
-          >
-            <TransactionCard
-              amount={item.amount ?? 0}
-              transaction_type={
-                (item.type as "income" | "expense") ?? "expense"
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color={Colors.primary.main}
+          style={{ flex: 1, justifyContent: "center" }}
+        />
+      ) : (
+        <FlatList
+          data={transactions}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onLongPress={() =>
+                Alert.alert("Opciones", item.destinatary ?? "", [
+                  { text: "Editar", onPress: () => openEdit(item) },
+                  {
+                    text: "Eliminar",
+                    style: "destructive",
+                    onPress: () =>
+                      handleDelete(item.id, item.destinatary ?? ""),
+                  },
+                  { text: "Cancelar", style: "cancel" },
+                ])
               }
-              category={
-                categories.find((c) => c.id === item.categoryId)?.name ??
-                "Sin categoría"
-              }
-              destinatary={item.destinatary ?? "—"}
-            />
-          </TouchableOpacity>
-        )}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          !loading ? (
+              activeOpacity={0.8}
+            >
+              <TransactionCard
+                amount={item.amount ?? 0}
+                transaction_type={
+                  (item.type as "income" | "expense") ?? "expense"
+                }
+                category={
+                  categories.find((c) => c.id === item.categoryId)?.name ??
+                  "Sin categoría"
+                }
+                destinatary={item.destinatary ?? "—"}
+                date={
+                  item.created_at
+                    ? new Date(item.created_at).toLocaleDateString("es-PE", {
+                        day: "2-digit",
+                        month: "short",
+                      })
+                    : undefined
+                }
+              />
+            </TouchableOpacity>
+          )}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
             <View style={styles.emptyState}>
               <MaterialCommunityIcons
                 name="cash-remove"
-                size={48}
+                size={56}
                 color={Colors.neutral.gray300}
               />
               <Text style={styles.emptyText}>Sin transacciones aún</Text>
-              <Text style={styles.emptySubtext}>
-                Toca el botón + para registrar una
-              </Text>
+              <Text style={styles.emptySubtext}>Toca + para registrar una</Text>
             </View>
-          ) : null
-        }
-        ListFooterComponent={<View style={{ height: 100 }} />}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            {loading ? (
-              <ActivityIndicator
-                size="large"
-                color={Colors.primary.main}
-                style={{ marginVertical: 40 }}
-              />
-            ) : (
-              <>
-                <View style={styles.balanceCard}>
-                  <Text style={styles.balanceLabel}>Balance Total</Text>
+          }
+          ListFooterComponent={<View style={{ height: 100 }} />}
+          ListHeaderComponent={
+            <View style={styles.listHeader}>
+              <Text style={styles.pageTitle}>Transacciones</Text>
+
+              {/* Balance card */}
+              <View style={styles.balanceCard}>
+                <View style={styles.balanceCardDecorCircle} />
+                <View style={styles.balanceCardIcon}>
+                  <MaterialCommunityIcons
+                    name="credit-card-outline"
+                    size={22}
+                    color="#fff"
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.balanceLabel}>Balance total</Text>
                   <Text style={styles.balanceAmount}>{fmt(totalBalance)}</Text>
                 </View>
-                <View style={styles.summaryRow}>
-                  <TransactionBigCard
-                    title={fmt(totalIncome)}
-                    label="Ingresos"
-                    icon="arrow-up-circle"
-                    color={Colors.accent.income}
-                  />
-                  <TransactionBigCard
-                    title={fmt(totalExpense)}
-                    label="Gastos"
-                    icon="arrow-down-circle"
-                    color={Colors.accent.expense}
-                  />
-                </View>
-                <View style={styles.listHeader}>
-                  <Text style={styles.listTitle}>Últimas transacciones</Text>
-                  <Text style={styles.listCount}>
-                    {transactions.length} movimientos
-                  </Text>
-                </View>
-              </>
-            )}
-          </View>
-        }
-        contentContainerStyle={styles.listContent}
-      />
+              </View>
+
+              {/* Section label */}
+              <View style={styles.sectionRow}>
+                <Text style={styles.sectionTitle}>Últimas transacciones</Text>
+                <Text style={styles.sectionCount}>
+                  {transactions.length} movimientos
+                </Text>
+              </View>
+            </View>
+          }
+          contentContainerStyle={styles.listContent}
+        />
+      )}
 
       {/* FAB */}
       <TouchableOpacity
@@ -292,246 +225,127 @@ export default function TransactionsScreen() {
       >
         <AntDesign name="plus" size={26} color="white" />
       </TouchableOpacity>
-
-      {/* ─── Modal ─────────────────────────────────────────────────── */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {editingId ? "Editar transacción" : "Nueva transacción"}
-            </Text>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <AntDesign
-                name="close"
-                size={22}
-                color={Colors.neutral.gray700}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={styles.modalScroll}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Type toggle */}
-            <Text style={styles.fieldLabel}>Tipo</Text>
-            <View style={styles.toggleRow}>
-              {(["expense", "income"] as const).map((t) => (
-                <TouchableOpacity
-                  key={t}
-                  style={[
-                    styles.toggleButton,
-                    form.type === t && {
-                      backgroundColor:
-                        t === "expense"
-                          ? Colors.accent.expense
-                          : Colors.accent.income,
-                    },
-                  ]}
-                  onPress={() => {
-                    setForm((f) => ({ ...f, type: t, categoryId: "" }));
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.toggleButtonText,
-                      form.type === t && { color: "white" },
-                    ]}
-                  >
-                    {t === "expense" ? "Gasto" : "Ingreso"}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Field
-              label="Monto (S/)"
-              keyboardType="decimal-pad"
-              value={form.amount}
-              onChangeText={(v) => setForm((f) => ({ ...f, amount: v }))}
-              placeholder="0.00"
-            />
-
-            <Field
-              label="Destinatario / Descripción"
-              value={form.destinatary}
-              onChangeText={(v) => setForm((f) => ({ ...f, destinatary: v }))}
-              placeholder="ej. Supermercado"
-            />
-
-            <Field
-              label="Origen (opcional)"
-              value={form.origin}
-              onChangeText={(v) => setForm((f) => ({ ...f, origin: v }))}
-              placeholder="ej. Banco, Efectivo"
-            />
-
-            {/* Category picker - Mostrar solo si hay categorías del tipo seleccionado */}
-            {filteredCategories.length > 0 && (
-              <>
-                <Text style={styles.fieldLabel}>Categoría</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.categoryScroll}
-                >
-                  {filteredCategories.map((cat) => (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={[
-                        styles.categoryChip,
-                        form.categoryId === cat.id && {
-                          backgroundColor: cat.color ?? Colors.primary.main,
-                          borderColor: cat.color ?? Colors.primary.main,
-                        },
-                      ]}
-                      onPress={() =>
-                        setForm((f) => ({
-                          ...f,
-                          categoryId: f.categoryId === cat.id ? "" : cat.id,
-                        }))
-                      }
-                    >
-                      <Text
-                        style={[
-                          styles.categoryChipText,
-                          form.categoryId === cat.id && { color: "white" },
-                        ]}
-                      >
-                        {cat.icon} {cat.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </>
-            )}
-
-            {/* Mensaje si no hay categorías */}
-            {filteredCategories.length === 0 && categories.length > 0 && (
-              <View style={styles.noCategoriesMessage}>
-                <MaterialCommunityIcons
-                  name="folder-open"
-                  size={24}
-                  color={Colors.neutral.gray400}
-                />
-                <Text style={styles.noCategoriesText}>
-                  No hay categorías para{" "}
-                  {form.type === "expense" ? "gastos" : "ingresos"}
-                </Text>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={[styles.saveButton, saving && { opacity: 0.6 }]}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.saveButtonText}>
-                  {editingId ? "Guardar cambios" : "Agregar transacción"}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </Modal>
     </View>
   );
 }
 
-// ─── Field helper ─────────────────────────────────────────────────────────────
-function Field({
-  label,
-  value,
-  onChangeText,
-  placeholder,
-  keyboardType = "default",
-}: {
-  label: string;
-  value: string;
-  onChangeText: (v: string) => void;
-  placeholder?: string;
-  keyboardType?: "default" | "decimal-pad";
-}) {
-  return (
-    <>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        style={styles.textInput}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={Colors.neutral.gray400}
-        keyboardType={keyboardType}
-      />
-    </>
-  );
-}
-
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
+  safeArea: { flex: 1, backgroundColor: Colors.primary.background },
   listContent: { paddingHorizontal: Spacing.xl },
-  header: { paddingTop: Spacing.md },
+  listHeader: { paddingTop: Spacing.xl, paddingBottom: Spacing.sm },
+
+  // ── Page title ──────────────────────────────────────────────────
+  pageTitle: {
+    fontSize: FontSize.display,
+    fontWeight: FontWeight.extrabold,
+    color: Colors.neutral.gray900,
+    marginBottom: Spacing.lg,
+  },
+
+  // ── Balance card ─────────────────────────────────────────────────
   balanceCard: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: "#3282DE",
     borderRadius: BorderRadius.xl,
     padding: Spacing.xl,
-    marginBottom: Spacing.xl,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+    marginBottom: Spacing.md,
+    overflow: "hidden",
     ...Shadow.lg,
   },
+  balanceCardDecorCircle: {
+    position: "absolute",
+    right: -40,
+    top: -40,
+    width: 130,
+    height: 130,
+    borderRadius: 100,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  balanceCardIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   balanceLabel: {
-    color: Colors.neutral.white,
+    color: "rgba(255,255,255,0.85)",
     fontSize: FontSize.sm,
-    opacity: 0.9,
-    marginBottom: Spacing.sm,
+    marginBottom: 4,
   },
   balanceAmount: {
     color: Colors.neutral.white,
-    fontSize: FontSize.display,
-    fontWeight: FontWeight.bold,
+    fontSize: FontSize.xxxl,
+    fontWeight: FontWeight.extrabold,
   },
+
+  // ── Summary row ──────────────────────────────────────────────────
   summaryRow: {
     flexDirection: "row",
     gap: Spacing.md,
-    marginBottom: Spacing.xxl,
+    marginBottom: Spacing.xl,
   },
-  listHeader: {
+  summaryCard: {
+    flex: 1,
+    backgroundColor: Colors.neutral.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    ...Shadow.md,
+  },
+  summaryIconBg: {
+    width: 38,
+    height: 38,
+    borderRadius: BorderRadius.md,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  summaryCardLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.neutral.gray500,
+    marginBottom: 2,
+  },
+  summaryCardValue: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.bold,
+  },
+
+  // ── Section header ───────────────────────────────────────────────
+  sectionRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "baseline",
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
-  listTitle: {
+  sectionTitle: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray900,
   },
-  listCount: {
+  sectionCount: {
     fontSize: FontSize.sm,
-    color: Colors.neutral.gray500,
+    color: Colors.neutral.gray400,
   },
+
+  // ── Empty ────────────────────────────────────────────────────────
   emptyState: {
     alignItems: "center",
     paddingVertical: Spacing.xxxl * 2,
     gap: Spacing.sm,
   },
   emptyText: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
     color: Colors.neutral.gray500,
   },
-  emptySubtext: {
-    fontSize: FontSize.sm,
-    color: Colors.neutral.gray400,
-  },
+  emptySubtext: { fontSize: FontSize.md, color: Colors.neutral.gray400 },
+
+  // ── FAB ──────────────────────────────────────────────────────────
   fab: {
     position: "absolute",
     bottom: 24,
@@ -543,108 +357,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     ...Shadow.lg,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: Colors.primary.background,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.neutral.gray100,
-  },
-  modalTitle: {
-    fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
-    color: Colors.neutral.gray900,
-  },
-  modalScroll: {
-    paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.lg,
-  },
-  fieldLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray700,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.lg,
-  },
-  textInput: {
-    backgroundColor: Colors.neutral.gray50,
-    borderWidth: 1.5,
-    borderColor: Colors.neutral.gray200,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.lg,
-    height: 50,
-    fontSize: FontSize.base,
-    color: Colors.neutral.gray900,
-  },
-  toggleRow: {
-    flexDirection: "row",
-    gap: Spacing.md,
-  },
-  toggleButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.neutral.gray200,
-    alignItems: "center",
-    backgroundColor: Colors.neutral.gray50,
-  },
-  toggleButtonText: {
-    fontSize: FontSize.base,
-    fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray700,
-  },
-  categoryScroll: {
-    marginBottom: Spacing.sm,
-    flexDirection: "row",
-  },
-  categoryChip: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.neutral.gray200,
-    backgroundColor: Colors.neutral.gray50,
-    marginRight: Spacing.sm,
-  },
-  categoryChipText: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
-    color: Colors.neutral.gray700,
-  },
-  saveButton: {
-    backgroundColor: Colors.primary.main,
-    paddingVertical: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    alignItems: "center",
-    marginTop: Spacing.xxl,
-    marginBottom: Spacing.xxxl,
-    ...Shadow.md,
-  },
-  saveButtonText: {
-    color: Colors.neutral.white,
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
-  },
-  noCategoriesMessage: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    padding: Spacing.lg,
-    backgroundColor: Colors.neutral.gray50,
-    borderRadius: BorderRadius.md,
-    marginTop: Spacing.md,
-  },
-  noCategoriesText: {
-    fontSize: FontSize.sm,
-    color: Colors.neutral.gray500,
   },
 });
