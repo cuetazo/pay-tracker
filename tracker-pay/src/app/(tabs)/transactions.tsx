@@ -9,6 +9,7 @@ import {
   Shadow,
   Spacing,
 } from "@/constants/theme";
+import { useAppColors } from "@/hooks/useAppColors";
 import { useModal } from "@/hooks/useModal";
 import { Database } from "@/services/db/schema";
 import { useAuthStore } from "@/stores/authStore";
@@ -32,7 +33,8 @@ type Category = Database["public"]["Tables"]["category"]["Row"];
 
 export default function TransactionsScreen() {
   const { user } = useAuthStore();
-  const { openModal, closeModal } = useModal();
+  const { openModal } = useModal();
+  const c = useAppColors();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,11 +155,11 @@ export default function TransactionsScreen() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <View style={styles.safeArea}>
+    <View style={[styles.safeArea, { backgroundColor: c.primary.background }]}>
       {loading ? (
         <ActivityIndicator
           size="large"
-          color={Colors.primary.main}
+          color={c.primary.main}
           style={{ flex: 1, justifyContent: "center" }}
         />
       ) : (
@@ -189,7 +191,7 @@ export default function TransactionsScreen() {
                   (item.type as "income" | "expense") ?? "expense"
                 }
                 category={
-                  categories.find((c) => c.id === item.categoryId)?.name ??
+                  categories.find((cat) => cat.id === item.categoryId)?.name ??
                   "Sin categoría"
                 }
                 destinatary={item.destinatary ?? "—"}
@@ -210,16 +212,22 @@ export default function TransactionsScreen() {
               <MaterialCommunityIcons
                 name="cash-remove"
                 size={56}
-                color={Colors.neutral.gray300}
+                color={c.neutral.gray300}
               />
-              <Text style={styles.emptyText}>Sin transacciones aún</Text>
-              <Text style={styles.emptySubtext}>Toca + para registrar una</Text>
+              <Text style={[styles.emptyText, { color: c.neutral.gray500 }]}>
+                Sin transacciones aún
+              </Text>
+              <Text style={[styles.emptySubtext, { color: c.neutral.gray400 }]}>
+                Toca + para registrar una
+              </Text>
             </View>
           }
           ListFooterComponent={<View style={{ height: 100 }} />}
           ListHeaderComponent={
             <View style={styles.listHeader}>
-              <Text style={styles.pageTitle}>Transacciones</Text>
+              <Text style={[styles.pageTitle, { color: c.neutral.gray900 }]}>
+                Transacciones
+              </Text>
 
               {/* Balance card */}
               <View style={styles.balanceCard}>
@@ -303,8 +311,14 @@ export default function TransactionsScreen() {
 
               {/* Section label */}
               <View style={styles.sectionRow}>
-                <Text style={styles.sectionTitle}>Últimas transacciones</Text>
-                <Text style={styles.sectionCount}>
+                <Text
+                  style={[styles.sectionTitle, { color: c.neutral.gray900 }]}
+                >
+                  Últimas transacciones
+                </Text>
+                <Text
+                  style={[styles.sectionCount, { color: c.neutral.gray400 }]}
+                >
                   {transactions.length} movimientos
                 </Text>
               </View>
@@ -316,7 +330,7 @@ export default function TransactionsScreen() {
 
       {/* FAB */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: c.primary.main }]}
         onPress={openCreate}
         activeOpacity={0.85}
       >
@@ -327,7 +341,7 @@ export default function TransactionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: Colors.primary.background },
+  safeArea: { flex: 1 },
   listContent: { paddingHorizontal: Spacing.xl },
   listHeader: { paddingTop: Spacing.xl, paddingBottom: Spacing.sm },
 
@@ -335,7 +349,6 @@ const styles = StyleSheet.create({
   pageTitle: {
     fontSize: FontSize.display,
     fontWeight: FontWeight.extrabold,
-    color: Colors.neutral.gray900,
     marginBottom: Spacing.lg,
   },
 
@@ -374,7 +387,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   balanceAmount: {
-    color: Colors.neutral.white,
+    color: "#FFFFFF",
     fontSize: FontSize.xxxl,
     fontWeight: FontWeight.extrabold,
   },
@@ -387,7 +400,6 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: Colors.neutral.white,
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     flexDirection: "row",
@@ -404,7 +416,6 @@ const styles = StyleSheet.create({
   },
   summaryCardLabel: {
     fontSize: FontSize.xs,
-    color: Colors.neutral.gray500,
     marginBottom: 2,
   },
   summaryCardValue: {
@@ -422,11 +433,9 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray900,
   },
   sectionCount: {
     fontSize: FontSize.sm,
-    color: Colors.neutral.gray400,
   },
 
   // ── Empty ────────────────────────────────────────────────────────
@@ -438,9 +447,8 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray500,
   },
-  emptySubtext: { fontSize: FontSize.md, color: Colors.neutral.gray400 },
+  emptySubtext: { fontSize: FontSize.md },
 
   // ── FAB ──────────────────────────────────────────────────────────
   fab: {
@@ -450,7 +458,6 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary.main,
     justifyContent: "center",
     alignItems: "center",
     ...Shadow.lg,
