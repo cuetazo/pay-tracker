@@ -249,6 +249,7 @@ export function TransactionFormModal({
           style={[styles.saveButton, saving && { opacity: 0.6 }]}
           onPress={handleSave}
           disabled={saving}
+          activeOpacity={0.85}
         >
           {saving ? (
             <ActivityIndicator color="white" />
@@ -332,7 +333,8 @@ const styles = StyleSheet.create({
   },
   categoryChipText: {
     fontSize: FontSize.sm,
-    color: Colors.neutral.gray500,
+    fontWeight: FontWeight.medium,
+    color: Colors.neutral.gray700,
   },
   noCategoriesMessage: {
     flexDirection: "row",
