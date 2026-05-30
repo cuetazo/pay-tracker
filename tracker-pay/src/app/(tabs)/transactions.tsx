@@ -1,7 +1,6 @@
 // app/(protected)/transactions.tsx
 import TransactionCard from "@/components/transaction/TransactionCard";
-import { TransactionFormModal } from "@/components/transaction/TransactionFormModal";
-
+import { TransactionFormModal } from "@/components/TransactionFormModal";
 import {
   BorderRadius,
   Colors,
@@ -33,7 +32,7 @@ type Category = Database["public"]["Tables"]["category"]["Row"];
 
 export default function TransactionsScreen() {
   const { user } = useAuthStore();
-  const { openModal } = useModal();
+  const { openModal, closeModal } = useModal();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +72,11 @@ export default function TransactionsScreen() {
     openModal(
       <TransactionFormModal
         categories={categories}
-        onSaveSuccess={fetchData}
+        onSaveSuccess={() => {
+          closeModal();
+          fetchData();
+        }}
+        onClose={closeModal}
       />,
       { type: "fullscreen" },
     );
@@ -84,7 +87,11 @@ export default function TransactionsScreen() {
       <TransactionFormModal
         transaction={transaction}
         categories={categories}
-        onSaveSuccess={fetchData}
+        onSaveSuccess={() => {
+          closeModal();
+          fetchData();
+        }}
+        onClose={closeModal}
       />,
       { type: "fullscreen" },
     );
@@ -113,18 +120,33 @@ export default function TransactionsScreen() {
   };
 
   // ─── Totals ───────────────────────────────────────────────────────────────
-  const totalIncome = transactions
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const thisMonthTx = transactions.filter((t) => {
+    const d = t.created_at ? new Date(t.created_at) : null;
+    return (
+      d && d.getMonth() === currentMonth && d.getFullYear() === currentYear
+    );
+  });
+
+  const totalIncome = thisMonthTx
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
-  const totalExpense = transactions
+  const totalExpense = thisMonthTx
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
-  const totalBalance = totalIncome - totalExpense;
+  const totalBalance = transactions.reduce(
+    (sum, t) =>
+      t.type === "income" ? sum + (t.amount ?? 0) : sum - (t.amount ?? 0),
+    0,
+  );
 
   const fmt = (n: number) =>
-    `S/ ${n.toLocaleString("es-PE", {
+    `S/ ${Math.abs(n).toLocaleString("es-PE", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
@@ -211,7 +233,71 @@ export default function TransactionsScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.balanceLabel}>Balance total</Text>
-                  <Text style={styles.balanceAmount}>{fmt(totalBalance)}</Text>
+                  <Text style={styles.balanceAmount}>
+                    {totalBalance < 0 ? "- " : ""}
+                    {fmt(totalBalance)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Summary cards */}
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryCard}>
+                  <View
+                    style={[
+                      styles.summaryIconBg,
+                      { backgroundColor: "#FEE2E2" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="arrow-up-right"
+                      size={18}
+                      color={Colors.accent.expense}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.summaryCardLabel}>
+                      Gastado este mes
+                    </Text>
+                    <Text
+                      style={[
+                        styles.summaryCardValue,
+                        { color: Colors.accent.expense },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {fmt(totalExpense)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.summaryCard}>
+                  <View
+                    style={[
+                      styles.summaryIconBg,
+                      { backgroundColor: "#D1FAE5" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="arrow-down-left"
+                      size={18}
+                      color={Colors.accent.income}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.summaryCardLabel}>
+                      Ingresado este mes
+                    </Text>
+                    <Text
+                      style={[
+                        styles.summaryCardValue,
+                        { color: Colors.accent.income },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {fmt(totalIncome)}
+                    </Text>
+                  </View>
                 </View>
               </View>
 
@@ -236,180 +322,6 @@ export default function TransactionsScreen() {
       >
         <AntDesign name="plus" size={26} color="white" />
       </TouchableOpacity>
-
-      {/* ─── Modal ─────────────────────────────────────────────────── */}
-        <Modal
-  visible={modalVisible}
-  animationType="slide"
-  transparent
-  onRequestClose={() => setModalVisible(false)}
->
-  <View style={styles.modalOverlay}>
-    <View style={styles.modalContainer}>
-      {/* Header */}
-      <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>
-          {editingId ? "Editar transacción" : "Nueva transaccion"}
-        </Text>
-
-        <TouchableOpacity onPress={() => setModalVisible(false)}>
-          <AntDesign
-            name="close"
-            size={24}
-            color={Colors.neutral.gray500}
-          />
-        </TouchableOpacity>
-      </View>
-
-          <ScrollView
-            style={styles.modalScroll}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: Spacing.xxxl * 2 }}
-          >
-            {/* Type toggle */}
-            <Text style={styles.fieldLabel}>Tipo</Text>
-            <View style={styles.toggleRow}>
-              {(["expense", "income"] as const).map((t) => (
-                <TouchableOpacity
-                  key={t}
-                  style={[
-                    styles.toggleButton,
-                    form.type === t && {
-                      backgroundColor:
-                        t === "expense"
-                          ? Colors.accent.expense
-                          : Colors.accent.income,
-                      borderColor:
-                        t === "expense"
-                          ? Colors.accent.expense
-                          : Colors.accent.income,
-                    },
-                  ]}
-                  onPress={() =>
-                    setForm((f) => ({ ...f, type: t, categoryId: "" }))
-                  }
-                >
-                  <MaterialCommunityIcons
-                    name={
-                      t === "expense" ? "arrow-up-right" : "arrow-down-left"
-                    }
-                    size={16}
-                    color={form.type === t ? "white" : Colors.neutral.gray500}
-                  />
-                  <Text
-                    style={[
-                      styles.toggleButtonText,
-                      form.type === t && { color: "white" },
-                    ]}
-                  >
-                    {t === "expense" ? "Gasto" : "Ingreso"}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-        {/* Inputs */}
-        <Field
-          label="Monto"
-          keyboardType="decimal-pad"
-          value={form.amount}
-          onChangeText={(v) => setForm((f) => ({ ...f, amount: v }))}
-          placeholder="S/ 0.00"
-        />
-
-        <Field
-          label="Destinatario / Descripcion"
-          value={form.destinatary}
-          onChangeText={(v) => setForm((f) => ({ ...f, destinatary: v }))}
-          placeholder="ej. Supermercado"
-        />
-
-        <Field
-          label="Origen (opcional)"
-          value={form.origin}
-          onChangeText={(v) => setForm((f) => ({ ...f, origin: v }))}
-          placeholder="ej. Supermercado"
-        />
-
-            {filteredCategories.length > 0 && (
-              <>
-                <Text style={styles.fieldLabel}>Categoría</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={{ marginBottom: Spacing.sm }}
-                >
-                  {filteredCategories.map((cat) => (
-                    <TouchableOpacity
-                      key={cat.id}
-                      style={[
-                        styles.categoryChip,
-                        form.categoryId === cat.id && {
-                          backgroundColor: cat.color ?? Colors.primary.main,
-                          borderColor: cat.color ?? Colors.primary.main,
-                        },
-                      ]}
-                      onPress={() =>
-                        setForm((f) => ({
-                          ...f,
-                          categoryId: f.categoryId === cat.id ? "" : cat.id,
-                        }))
-                      }
-                    >
-                      <MaterialCommunityIcons
-                        name={(cat.icon ?? "wallet") as any}
-                        size={14}
-                        color={
-                          form.categoryId === cat.id
-                            ? "white"
-                            : Colors.neutral.gray500
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.categoryChipText,
-                          form.categoryId === cat.id && { color: "white" },
-                        ]}
-                      >
-                        {cat.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </>
-            )}
-
-            {filteredCategories.length === 0 && categories.length > 0 && (
-              <View style={styles.noCategoriesMessage}>
-                <MaterialCommunityIcons
-                  name="folder-open"
-                  size={20}
-                  color={Colors.neutral.gray400}
-                />
-                <Text style={styles.noCategoriesText}>
-                  No hay categorías para{" "}
-                  {form.type === "expense" ? "gastos" : "ingresos"}
-                </Text>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={[styles.saveButton, saving && { opacity: 0.6 }]}
-              onPress={handleSave}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.saveButtonText}>
-                  {editingId ? "Guardar cambios" : "Agregar transacción"}
-                </Text>
-              )}
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -466,17 +378,8 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xxxl,
     fontWeight: FontWeight.extrabold,
   },
-    modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.25)",
-    justifyContent: "center",
-    padding: 12,
-  },
-    toggleContainer: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 22,
-  },
+
+  // ── Summary cards ────────────────────────────────────────────────
   summaryRow: {
     flexDirection: "row",
     gap: Spacing.md,

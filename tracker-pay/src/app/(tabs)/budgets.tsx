@@ -19,13 +19,13 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { RefreshControl } from "react-native-gesture-handler";
 
 type Category = Database["public"]["Tables"]["category"]["Row"];
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];

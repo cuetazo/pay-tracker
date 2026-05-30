@@ -108,7 +108,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     justifyContent: "center",
     alignItems: "center",
-    flex: 1,
   },
 
   container__icon: {

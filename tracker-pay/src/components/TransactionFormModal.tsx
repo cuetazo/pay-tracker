@@ -1,10 +1,10 @@
 // components/transaction/TransactionFormModal.tsx
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  FontWeight,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    FontWeight,
+    Spacing,
 } from "@/constants/theme";
 import { Database } from "@/services/db/schema";
 import { useAuthStore } from "@/stores/authStore";
@@ -13,14 +13,14 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
