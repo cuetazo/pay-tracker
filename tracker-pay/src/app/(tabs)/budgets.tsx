@@ -19,6 +19,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -74,6 +75,7 @@ export default function BudgetsScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -93,6 +95,12 @@ export default function BudgetsScreen() {
     if (txRes.data) setTransactions(txRes.data);
     setLoading(false);
   }, [user?.id]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  }, [fetchData]);
 
   useEffect(() => {
     fetchData();
@@ -159,6 +167,9 @@ export default function BudgetsScreen() {
         <FlatList
           data={categories}
           keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           renderItem={({ item }) => {
             const spent = spentForCategory(item.id);
             const limit = item.limit_amount ?? 0;

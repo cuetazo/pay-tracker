@@ -1,10 +1,10 @@
 // components/transaction/TransactionFormModal.tsx
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  FontWeight,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    FontWeight,
+    Spacing,
 } from "@/constants/theme";
 import { Database } from "@/services/db/schema";
 import { useAuthStore } from "@/stores/authStore";
@@ -13,14 +13,14 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
@@ -249,7 +249,6 @@ export function TransactionFormModal({
           style={[styles.saveButton, saving && { opacity: 0.6 }]}
           onPress={handleSave}
           disabled={saving}
-          activeOpacity={0.85}
         >
           {saving ? (
             <ActivityIndicator color="white" />
@@ -333,8 +332,7 @@ const styles = StyleSheet.create({
   },
   categoryChipText: {
     fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
-    color: Colors.neutral.gray700,
+    color: Colors.neutral.gray500,
   },
   noCategoriesMessage: {
     flexDirection: "row",

@@ -1,8 +1,10 @@
+import { useAuthStore } from "@/stores/authStore";
 import { useModalNavigation } from "@/stores/modalStore";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function FourthScreen() {
   const { openModal } = useModalNavigation();
+  const { SignOut } = useAuthStore();
 
   return (
     <View style={styles.container}>
@@ -18,6 +20,17 @@ export default function FourthScreen() {
         }
       >
         <Text>Open Transactions Modal</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={{
+          padding: 10,
+          backgroundColor: "salmon",
+          borderRadius: 5,
+          marginBottom: 20,
+        }}
+        onPress={SignOut}
+      >
+        <Text>Logout</Text>
       </TouchableOpacity>
       <Text>This is the fourth screen.</Text>
     </View>

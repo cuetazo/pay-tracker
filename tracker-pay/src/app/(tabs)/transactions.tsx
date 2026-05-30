@@ -1,7 +1,6 @@
 // app/(protected)/transactions.tsx
 import TransactionCard from "@/components/transaction/TransactionCard";
-import { TransactionFormModal } from "@/components/transaction/TransactionFormModal";
-
+import { TransactionFormModal } from "@/components/TransactionFormModal";
 import {
   BorderRadius,
   Colors,
@@ -21,6 +20,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -32,10 +32,11 @@ type Category = Database["public"]["Tables"]["category"]["Row"];
 
 export default function TransactionsScreen() {
   const { user } = useAuthStore();
-  const { openModal } = useModal();
+  const { openModal, closeModal } = useModal();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -56,6 +57,12 @@ export default function TransactionsScreen() {
     setLoading(false);
   }, [user?.id]);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  }, [fetchData]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -65,7 +72,11 @@ export default function TransactionsScreen() {
     openModal(
       <TransactionFormModal
         categories={categories}
-        onSaveSuccess={fetchData}
+        onSaveSuccess={() => {
+          closeModal();
+          fetchData();
+        }}
+        onClose={closeModal}
       />,
       { type: "fullscreen" },
     );
@@ -76,7 +87,11 @@ export default function TransactionsScreen() {
       <TransactionFormModal
         transaction={transaction}
         categories={categories}
-        onSaveSuccess={fetchData}
+        onSaveSuccess={() => {
+          closeModal();
+          fetchData();
+        }}
+        onClose={closeModal}
       />,
       { type: "fullscreen" },
     );
@@ -105,18 +120,33 @@ export default function TransactionsScreen() {
   };
 
   // ─── Totals ───────────────────────────────────────────────────────────────
-  const totalIncome = transactions
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const thisMonthTx = transactions.filter((t) => {
+    const d = t.created_at ? new Date(t.created_at) : null;
+    return (
+      d && d.getMonth() === currentMonth && d.getFullYear() === currentYear
+    );
+  });
+
+  const totalIncome = thisMonthTx
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
-  const totalExpense = transactions
+  const totalExpense = thisMonthTx
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
-  const totalBalance = totalIncome - totalExpense;
+  const totalBalance = transactions.reduce(
+    (sum, t) =>
+      t.type === "income" ? sum + (t.amount ?? 0) : sum - (t.amount ?? 0),
+    0,
+  );
 
   const fmt = (n: number) =>
-    `S/ ${n.toLocaleString("es-PE", {
+    `S/ ${Math.abs(n).toLocaleString("es-PE", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
@@ -134,6 +164,9 @@ export default function TransactionsScreen() {
         <FlatList
           data={transactions}
           keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
           renderItem={({ item }) => (
             <TouchableOpacity
               onLongPress={() =>
@@ -200,7 +233,71 @@ export default function TransactionsScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.balanceLabel}>Balance total</Text>
-                  <Text style={styles.balanceAmount}>{fmt(totalBalance)}</Text>
+                  <Text style={styles.balanceAmount}>
+                    {totalBalance < 0 ? "- " : ""}
+                    {fmt(totalBalance)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Summary cards */}
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryCard}>
+                  <View
+                    style={[
+                      styles.summaryIconBg,
+                      { backgroundColor: "#FEE2E2" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="arrow-up-right"
+                      size={18}
+                      color={Colors.accent.expense}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.summaryCardLabel}>
+                      Gastado este mes
+                    </Text>
+                    <Text
+                      style={[
+                        styles.summaryCardValue,
+                        { color: Colors.accent.expense },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {fmt(totalExpense)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.summaryCard}>
+                  <View
+                    style={[
+                      styles.summaryIconBg,
+                      { backgroundColor: "#D1FAE5" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="arrow-down-left"
+                      size={18}
+                      color={Colors.accent.income}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.summaryCardLabel}>
+                      Ingresado este mes
+                    </Text>
+                    <Text
+                      style={[
+                        styles.summaryCardValue,
+                        { color: Colors.accent.income },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {fmt(totalIncome)}
+                    </Text>
+                  </View>
                 </View>
               </View>
 
@@ -282,7 +379,7 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.extrabold,
   },
 
-  // ── Summary row ──────────────────────────────────────────────────
+  // ── Summary cards ────────────────────────────────────────────────
   summaryRow: {
     flexDirection: "row",
     gap: Spacing.md,
