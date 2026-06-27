@@ -1,10 +1,10 @@
 import {
-  BorderRadius,
-  Colors,
-  FontSize,
-  FontWeight,
-  Shadow,
-  Spacing,
+    BorderRadius,
+    Colors,
+    FontSize,
+    FontWeight,
+    Shadow,
+    Spacing,
 } from "@/constants/theme";
 import { Database } from "@/services/db/schema";
 import { useAuthStore } from "@/stores/authStore";
@@ -14,14 +14,14 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { ScrollView, TextInput } from "react-native-gesture-handler";
 
@@ -139,8 +139,8 @@ export function CategoryFormModal({
       Alert.alert("Error", error.message);
       return;
     }
+    await onSaveSuccess();
     closeModal();
-    onSaveSuccess();
   };
 
   return (
