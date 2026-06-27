@@ -56,6 +56,15 @@ export default function ProtectedLayout() {
         }}
       />
       <Tabs.Screen
+        name="payments"
+        options={{
+          title: "Pagos",
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome name="credit-card" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="budgets"
         options={{
           title: "consumo",
