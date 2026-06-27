@@ -15,23 +15,12 @@ import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/stores/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-<<<<<<< HEAD
-import { useCallback, useEffect, useRef, useState } from "react";
-=======
 import { useCallback, useEffect, useState } from "react";
->>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
 import {
   ActivityIndicator,
   Alert,
   FlatList,
-<<<<<<< HEAD
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-=======
   RefreshControl,
->>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
   StyleSheet,
   Text,
   TextInput,
@@ -89,9 +78,6 @@ export default function BudgetsScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  // Ref para el ScrollView del modal
-  const scrollRef = useRef<ScrollView>(null);
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -169,19 +155,6 @@ export default function BudgetsScreen() {
   // ─── Totals ───────────────────────────────────────────────────────────────
   const totalBudget = categories.reduce((s, cat) => s + (cat.limit_amount ?? 0), 0);
   const totalSpent = categories.reduce((s, cat) => s + spentForCategory(cat.id), 0);
-
-  // ─── Scroll helpers ───────────────────────────────────────────────────────
-  const scrollToEnd = () => {
-    setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    }, 150);
-  };
-
-  const scrollToY = (y: number) => {
-    setTimeout(() => {
-      scrollRef.current?.scrollTo({ y, animated: true });
-    }, 150);
-  };
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
@@ -389,159 +362,6 @@ export default function BudgetsScreen() {
       >
         <AntDesign name="plus" size={28} color="white" />
       </TouchableOpacity>
-<<<<<<< HEAD
-
-      {/* ─── Modal ─────────────────────────────────────────────────── */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>
-              {editingId ? "Editar categoria" : "Nueva categoria"}
-            </Text>
-            <TouchableOpacity onPress={() => setModalVisible(false)}>
-              <AntDesign name="close" size={24} color={Colors.neutral.gray700} />
-            </TouchableOpacity>
-          </View>
-
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={{ flex: 1 }}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 25}
-          >
-            <ScrollView
-              ref={scrollRef}
-              style={styles.modalScroll}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: Spacing.xxxl * 3 }}
-            >
-              {/* Icon picker */}
-              <Text style={styles.fieldLabel}>Icono</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {PRESET_ICONS.map(({ key }) => (
-                  <TouchableOpacity
-                    key={key}
-                    style={[
-                      styles.iconOption,
-                      form.icon === key && {
-                        backgroundColor: form.color + "22",
-                        borderColor: form.color,
-                      },
-                    ]}
-                    onPress={() => setForm((f) => ({ ...f, icon: key }))}
-                  >
-                    <MaterialCommunityIcons
-                      name={key as any}
-                      size={26}
-                      color={form.icon === key ? form.color : Colors.neutral.gray400}
-                    />
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              {/* Color picker */}
-              <Text style={styles.fieldLabel}>Color</Text>
-              <View style={styles.colorRow}>
-                {PRESET_COLORS.map((c) => (
-                  <TouchableOpacity
-                    key={c}
-                    style={[
-                      styles.colorDot,
-                      { backgroundColor: c },
-                      form.color === c && styles.colorDotSelected,
-                    ]}
-                    onPress={() => setForm((f) => ({ ...f, color: c }))}
-                  />
-                ))}
-              </View>
-
-              <ModalField
-                label="Nombre *"
-                value={form.name}
-                onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
-                placeholder="ej. Alimentacion"
-                onFocus={() => scrollToY(0)}
-              />
-
-              <ModalField
-                label="Descripcion (opcional)"
-                value={form.description}
-                onChangeText={(v) => setForm((f) => ({ ...f, description: v }))}
-                placeholder="ej. Comida y supermercado"
-                onFocus={() => scrollToY(100)}
-              />
-
-              <ModalField
-                label="Limite (S/, opcional)"
-                value={form.limit_amount}
-                onChangeText={(v) => setForm((f) => ({ ...f, limit_amount: v }))}
-                placeholder="0.00"
-                keyboardType="decimal-pad"
-                onFocus={scrollToEnd}
-              />
-
-              {form.limit_amount ? (
-                <>
-                  <Text style={styles.fieldLabel}>Intervalo</Text>
-                  <View style={styles.toggleRow}>
-                    {(["daily", "weekly", "monthly"] as const).map((interval) => (
-                      <TouchableOpacity
-                        key={interval}
-                        style={[
-                          styles.intervalButton,
-                          form.limit_interval === interval && {
-                            backgroundColor: form.color,
-                            borderColor: form.color,
-                          },
-                        ]}
-                        onPress={() =>
-                          setForm((f) => ({ ...f, limit_interval: interval }))
-                        }
-                      >
-                        <Text
-                          style={[
-                            styles.intervalButtonText,
-                            form.limit_interval === interval && {
-                              color: "white",
-                            },
-                          ]}
-                        >
-                          {INTERVALS[interval]}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </>
-              ) : null}
-
-              <TouchableOpacity
-                style={[
-                  styles.saveButton,
-                  { backgroundColor: "#1E82F4" },
-                  saving && { opacity: 0.6 },
-                ]}
-                onPress={handleSave}
-                disabled={saving}
-              >
-                {saving ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text style={styles.saveButtonText}>
-                    {editingId ? "Guardar cambios" : "Crear categoria"}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
-=======
->>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
     </View>
   );
 }
