@@ -1,5 +1,5 @@
 // TransactionBigCard.tsx
-import { Colors } from "@/constants/theme_test";
+import { Colors } from "@/constants/theme";
 import { StyleSheet, Text, View } from "react-native";
 
 export type TransactionBigCardProps = {

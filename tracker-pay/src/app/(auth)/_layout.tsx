@@ -1,7 +1,7 @@
 import { Slot, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
-import { useAuthStore } from "../../utils/authStore";
+import { useAuthStore } from "../../stores/authStore";
 
 export default function AuthLayout() {
   const { isLoggedIn } = useAuthStore();

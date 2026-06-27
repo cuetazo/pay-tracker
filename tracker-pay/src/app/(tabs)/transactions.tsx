@@ -1,5 +1,10 @@
 // app/(protected)/transactions.tsx
+<<<<<<< HEAD
 import TransactionCard from "@/components/TransactionCard";
+=======
+import TransactionCard from "@/components/transaction/TransactionCard";
+import { TransactionFormModal } from "@/components/TransactionFormModal";
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
 import {
   BorderRadius,
   Colors,
@@ -8,9 +13,11 @@ import {
   Shadow,
   Spacing,
 } from "@/constants/theme";
+import { useAppColors } from "@/hooks/useAppColors";
+import { useModal } from "@/hooks/useModal";
 import { Database } from "@/services/db/schema";
-import { useAuthStore } from "@/utils/authStore";
-import { supabase } from "@/utils/supabase";
+import { useAuthStore } from "@/stores/authStore";
+import { supabase } from "@/stores/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useCallback, useEffect, useState } from "react";
@@ -18,11 +25,14 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+<<<<<<< HEAD
   Modal,
   ScrollView,
+=======
+  RefreshControl,
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -30,79 +40,79 @@ import {
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 type Category = Database["public"]["Tables"]["category"]["Row"];
 
-type TransactionForm = {
-  amount: string;
-  destinatary: string;
-  type: "income" | "expense";
-  categoryId: string;
-  origin: string;
-};
-
-const EMPTY_FORM: TransactionForm = {
-  amount: "",
-  destinatary: "",
-  type: "expense",
-  categoryId: "",
-  origin: "",
-};
-
 export default function TransactionsScreen() {
   const { user } = useAuthStore();
+  const { openModal } = useModal();
+  const c = useAppColors();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<TransactionForm>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
-
+  const [refreshing, setRefreshing] = useState(false);
+  const { closeModal } = useModal();
   // ─── Fetch ────────────────────────────────────────────────────────────────
-  const fetchTransactions = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("userId", user.id)
-      .order("created_at", { ascending: false });
 
+<<<<<<< HEAD
     if (!error && data) setTransactions(data);
+=======
+    const [txRes, catRes] = await Promise.all([
+      supabase
+        .from("transactions")
+        .select("*")
+        .eq("userId", user.id)
+        .order("created_at", { ascending: false }),
+      supabase.from("category").select("*").eq("userId", user.id),
+    ]);
+
+    if (txRes.data) setTransactions(txRes.data);
+    if (catRes.data) setCategories(catRes.data);
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
     setLoading(false);
   }, [user?.id]);
 
-  const fetchCategories = useCallback(async () => {
-    if (!user?.id) return;
-    const { data } = await supabase
-      .from("category")
-      .select("*")
-      .eq("userId", user.id);
-    if (data) setCategories(data);
-  }, [user?.id]);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+  }, [fetchData]);
 
   useEffect(() => {
-    fetchTransactions();
-    fetchCategories();
-  }, [fetchTransactions, fetchCategories]);
+    fetchData();
+  }, [fetchData]);
 
-  // ─── CRUD ────────────────────────────────────────────────────────────────
+  // ─── CRUD ─────────────────────────────────────────────────────────────────
   const openCreate = () => {
-    setEditingId(null);
-    setForm(EMPTY_FORM);
-    setModalVisible(true);
+    openModal(
+      <TransactionFormModal
+        categories={categories}
+        onSaveSuccess={() => {
+          closeModal();
+          fetchData();
+        }}
+        onClose={closeModal}
+      />,
+      { type: "fullscreen" },
+    );
   };
 
-  const openEdit = (t: Transaction) => {
-    setEditingId(t.id);
-    setForm({
-      amount: t.amount?.toString() ?? "",
-      destinatary: t.destinatary ?? "",
-      type: (t.type as "income" | "expense") ?? "expense",
-      categoryId: t.categoryId ?? "",
-      origin: t.origin ?? "",
-    });
-    setModalVisible(true);
+  const openEdit = (transaction: Transaction) => {
+    openModal(
+      <TransactionFormModal
+        transaction={transaction}
+        categories={categories}
+        onSaveSuccess={() => {
+          closeModal();
+          fetchData();
+        }}
+        onClose={closeModal}
+      />,
+      { type: "fullscreen" },
+    );
   };
 
+<<<<<<< HEAD
   const handleSave = async () => {
     if (!user?.id) return;
     if (!form.amount || isNaN(Number(form.amount))) {
@@ -141,8 +151,11 @@ export default function TransactionsScreen() {
   };
 
   const handleDelete = (id: string) => {
+=======
+  const handleDelete = (id: string, name: string) => {
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
     Alert.alert(
-      "Eliminar transacción",
+      `Eliminar "${name}"`,
       "¿Estás seguro? Esta acción no se puede deshacer.",
       [
         { text: "Cancelar", style: "cancel" },
@@ -155,7 +168,7 @@ export default function TransactionsScreen() {
               .delete()
               .eq("id", id);
             if (error) Alert.alert("Error", error.message);
-            else fetchTransactions();
+            else fetchData();
           },
         },
       ],
@@ -163,17 +176,33 @@ export default function TransactionsScreen() {
   };
 
   // ─── Totals ───────────────────────────────────────────────────────────────
-  const totalIncome = transactions
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const thisMonthTx = transactions.filter((t) => {
+    const d = t.created_at ? new Date(t.created_at) : null;
+    return (
+      d && d.getMonth() === currentMonth && d.getFullYear() === currentYear
+    );
+  });
+
+  const totalIncome = thisMonthTx
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
-  const totalExpense = transactions
+  const totalExpense = thisMonthTx
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + (t.amount ?? 0), 0);
 
-  const totalBalance = totalIncome - totalExpense;
+  const totalBalance = transactions.reduce(
+    (sum, t) =>
+      t.type === "income" ? sum + (t.amount ?? 0) : sum - (t.amount ?? 0),
+    0,
+  );
 
   const fmt = (n: number) =>
+<<<<<<< HEAD
     `S/ ${n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const filteredCategories = categories.filter((cat) =>
@@ -214,12 +243,75 @@ export default function TransactionsScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           !loading ? (
+=======
+    `S/ ${Math.abs(n).toLocaleString("es-PE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+
+  // ─── Render ───────────────────────────────────────────────────────────────
+  return (
+    <View style={[styles.safeArea, { backgroundColor: c.primary.background }]}>
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color={c.primary.main}
+          style={{ flex: 1, justifyContent: "center" }}
+        />
+      ) : (
+        <FlatList
+          data={transactions}
+          keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              onLongPress={() =>
+                Alert.alert("Opciones", item.destinatary ?? "", [
+                  { text: "Editar", onPress: () => openEdit(item) },
+                  {
+                    text: "Eliminar",
+                    style: "destructive",
+                    onPress: () =>
+                      handleDelete(item.id, item.destinatary ?? ""),
+                  },
+                  { text: "Cancelar", style: "cancel" },
+                ])
+              }
+              activeOpacity={0.8}
+            >
+              <TransactionCard
+                amount={item.amount ?? 0}
+                transaction_type={
+                  (item.type as "income" | "expense") ?? "expense"
+                }
+                category={
+                  categories.find((cat) => cat.id === item.categoryId)?.name ??
+                  "Sin categoría"
+                }
+                destinatary={item.destinatary ?? "—"}
+                date={
+                  item.created_at
+                    ? new Date(item.created_at).toLocaleDateString("es-PE", {
+                        day: "2-digit",
+                        month: "short",
+                      })
+                    : undefined
+                }
+              />
+            </TouchableOpacity>
+          )}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
             <View style={styles.emptyState}>
               <MaterialCommunityIcons
                 name="cash-remove"
-                size={48}
-                color={Colors.neutral.gray300}
+                size={56}
+                color={c.neutral.gray300}
               />
+<<<<<<< HEAD
               <Text style={styles.emptyText}>Sin transacciones aún</Text>
               <Text style={styles.emptySubtext}>Toca + para registrar una</Text>
             </View>
@@ -297,16 +389,144 @@ export default function TransactionsScreen() {
                   <Text style={styles.sectionTitle}>Últimas transacciones</Text>
                   <Text style={styles.sectionCount}>
                     {transactions.length} movimientos
+=======
+              <Text style={[styles.emptyText, { color: c.neutral.gray500 }]}>
+                Sin transacciones aún
+              </Text>
+              <Text style={[styles.emptySubtext, { color: c.neutral.gray400 }]}>
+                Toca + para registrar una
+              </Text>
+            </View>
+          }
+          ListFooterComponent={<View style={{ height: 100 }} />}
+          ListHeaderComponent={
+            <View style={styles.listHeader}>
+              <Text style={[styles.pageTitle, { color: c.neutral.gray900 }]}>
+                Transacciones
+              </Text>
+
+              {/* Balance card */}
+              <View style={styles.balanceCard}>
+                <View style={styles.balanceCardDecorCircle} />
+                <View style={styles.balanceCardIcon}>
+                  <MaterialCommunityIcons
+                    name="credit-card-outline"
+                    size={22}
+                    color="#fff"
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.balanceLabel}>Balance total</Text>
+                  <Text style={styles.balanceAmount}>
+                    {totalBalance < 0 ? "- " : ""}
+                    {fmt(totalBalance)}
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
                   </Text>
                 </View>
-              </>
-            )}
-          </View>
-        }
-        contentContainerStyle={styles.listContent}
-      />
+              </View>
+
+              {/* Summary cards */}
+              <View style={styles.summaryRow}>
+                <View
+                  style={[
+                    styles.summaryCard,
+                    { backgroundColor: c.neutral.white },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.summaryIconBg,
+                      { backgroundColor: "#FEE2E2" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="arrow-up-right"
+                      size={18}
+                      color={Colors.accent.expense}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.summaryCardLabel,
+                        { color: c.neutral.gray500 },
+                      ]}
+                    >
+                      Gastado este mes
+                    </Text>
+                    <Text
+                      style={[
+                        styles.summaryCardValue,
+                        { color: Colors.accent.expense },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {fmt(totalExpense)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View
+                  style={[
+                    styles.summaryCard,
+                    { backgroundColor: c.neutral.white },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.summaryIconBg,
+                      { backgroundColor: "#D1FAE5" },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name="arrow-down-left"
+                      size={18}
+                      color={Colors.accent.income}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={[
+                        styles.summaryCardLabel,
+                        { color: c.neutral.gray500 },
+                      ]}
+                    >
+                      Ingresado este mes
+                    </Text>
+                    <Text
+                      style={[
+                        styles.summaryCardValue,
+                        { color: Colors.accent.income },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {fmt(totalIncome)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Section label */}
+              <View style={styles.sectionRow}>
+                <Text
+                  style={[styles.sectionTitle, { color: c.neutral.gray900 }]}
+                >
+                  Últimas transacciones
+                </Text>
+                <Text
+                  style={[styles.sectionCount, { color: c.neutral.gray400 }]}
+                >
+                  {transactions.length} movimientos
+                </Text>
+              </View>
+            </View>
+          }
+          contentContainerStyle={styles.listContent}
+        />
+      )}
 
       {/* FAB */}
+<<<<<<< HEAD
       <TouchableOpacity style={styles.fab} onPress={openCreate} activeOpacity={0.85}>
         <AntDesign name="plus" size={26} color="white" />
       </TouchableOpacity>
@@ -472,10 +692,20 @@ export default function TransactionsScreen() {
           </ScrollView>
         </View>
       </Modal>
+=======
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: c.primary.main }]}
+        onPress={openCreate}
+        activeOpacity={0.85}
+      >
+        <AntDesign name="plus" size={26} color="white" />
+      </TouchableOpacity>
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
     </View>
   );
 }
 
+<<<<<<< HEAD
 // ─── Field helper ──────────────────────────────────────────────────────────────
 function Field({
   label,
@@ -505,18 +735,27 @@ function Field({
   );
 }
 
+=======
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.primary.background },
 
   listContent: { paddingHorizontal: Spacing.xl },
+<<<<<<< HEAD
 
   listHeaderWrapper: { paddingTop: Spacing.xl },
+=======
+  listHeader: { paddingTop: Spacing.xl, paddingBottom: Spacing.sm },
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
 
   // ── Page title ──────────────────────────────────────────────────
   pageTitle: {
     fontSize: FontSize.display,
     fontWeight: FontWeight.extrabold,
+<<<<<<< HEAD
     color: Colors.neutral.gray900,
+=======
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
     marginBottom: Spacing.lg,
   },
 
@@ -555,12 +794,20 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   balanceAmount: {
+<<<<<<< HEAD
     color: Colors.neutral.white,
+=======
+    color: "#FFFFFF",
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
     fontSize: FontSize.xxxl,
     fontWeight: FontWeight.extrabold,
   },
 
+<<<<<<< HEAD
   // ── Summary row ──────────────────────────────────────────────────
+=======
+  // ── Summary cards ────────────────────────────────────────────────
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
   summaryRow: {
     flexDirection: "row",
     gap: Spacing.md,
@@ -568,7 +815,10 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
+<<<<<<< HEAD
     backgroundColor: Colors.neutral.white,
+=======
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
     borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
     flexDirection: "row",
@@ -585,7 +835,10 @@ const styles = StyleSheet.create({
   },
   summaryCardLabel: {
     fontSize: FontSize.xs,
+<<<<<<< HEAD
     color: Colors.neutral.gray500,
+=======
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
     marginBottom: 2,
   },
   summaryCardValue: {
@@ -603,11 +856,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
-    color: Colors.neutral.gray900,
   },
   sectionCount: {
     fontSize: FontSize.sm,
+<<<<<<< HEAD
     color: Colors.neutral.gray400,
+=======
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
   },
 
   // ── Empty ────────────────────────────────────────────────────────
@@ -617,11 +872,16 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   emptyText: {
-    fontSize: FontSize.md,
+    fontSize: FontSize.lg,
     fontWeight: FontWeight.semibold,
+<<<<<<< HEAD
     color: Colors.neutral.gray500,
   },
   emptySubtext: { fontSize: FontSize.sm, color: Colors.neutral.gray400 },
+=======
+  },
+  emptySubtext: { fontSize: FontSize.md },
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76
 
   // ── FAB ──────────────────────────────────────────────────────────
   fab: {
@@ -631,11 +891,11 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.primary.main,
     justifyContent: "center",
     alignItems: "center",
     ...Shadow.lg,
   },
+<<<<<<< HEAD
 
   // ── Modal ─────────────────────────────────────────────────────────
   modalContainer: { flex: 1, backgroundColor: Colors.primary.background },
@@ -738,3 +998,6 @@ const styles = StyleSheet.create({
     color: Colors.neutral.gray500,
   },
 });
+=======
+});
+>>>>>>> fc061e347e6e1158f3fd760eaa3287c1c5c96d76

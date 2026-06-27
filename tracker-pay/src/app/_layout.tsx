@@ -1,12 +1,16 @@
+import { ModalWrapper } from "@/components/common/modalWrapper";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useAuthStore } from "../utils/authStore";
+import { useAuthStore } from "../stores/authStore";
+import { useThemeStore } from "../stores/themeStore";
 
 export default function RootLayout() {
   const { silentSignIn, isLoggedIn, onboarding_complete } = useAuthStore();
+  const { isDarkMode } = useThemeStore();
+
 
   useEffect(() => {
     GoogleSignin.configure({
@@ -23,7 +27,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack>
-        <StatusBar style="auto" />
+        <StatusBar style={isDarkMode ? "light" : "dark"} />
         <Stack.Protected guard={!isLoggedIn}>
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         </Stack.Protected>
@@ -32,15 +36,9 @@ export default function RootLayout() {
         </Stack.Protected>
         <Stack.Protected guard={isLoggedIn}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="avatar-menu-modal"
-            options={{
-              presentation: "transparentModal",
-              headerShown: false,
-            }}
-          />
         </Stack.Protected>
       </Stack>
+      <ModalWrapper />
     </GestureHandlerRootView>
   );
 }
