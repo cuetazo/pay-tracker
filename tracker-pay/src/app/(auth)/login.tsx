@@ -1,7 +1,7 @@
+import { useAuthStore } from "@/stores/authStore";
 import Entypo from "@expo/vector-icons/Entypo";
 import { Image } from "expo-image";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useAuthStore } from "../../stores/authStore";
 
 export default function LoginScreen() {
   const { user, SignIn, SignOut } = useAuthStore();
@@ -9,21 +9,33 @@ export default function LoginScreen() {
   return (
     <View style={styles.container_screen}>
       <View style={styles.logo}>
-        <Entypo name="wallet" size={52} color="black" />
+        <Entypo name="wallet" size={64} color="white" />
       </View>
-      <Text style={styles.title}>Tracker Pay</Text>
-      <View>
+      <View style={{ alignItems: "center", gap: 8 }}>
+        <Text style={styles.title}>Tracker Pay</Text>
+        <Text style={{ fontSize: 16, color: "#333", textAlign: "center" }}>
+          Finanzas precisas para tu vida diaria. Controla tus gastos, ahorra de
+          forma simple.
+        </Text>
+      </View>
+      <View style={{ width: "100%" }}>
         <TouchableOpacity
           style={styles.SignInButton_container}
           onPress={user ? SignOut : SignIn}
         >
-          <View style={{ width: 24, height: 24 }}>
-            <Image
-              style={{ width: "100%", height: "100%" }}
-              source={require("@/assets/images/google-icon.png")}
-            />
-          </View>
-          <Text style={styles.SignInButton__title}>Sign in with Google</Text>
+          <Image
+            style={{
+              width: 18,
+              height: 18,
+              backgroundColor: "white",
+              borderRadius: 100,
+              padding: 2,
+              borderWidth: 2,
+              borderColor: "white",
+            }}
+            source={require("@/assets/images/google-icon.png")}
+          />
+          <Text style={styles.SignInButton__title}>Continuar con Google</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -32,39 +44,38 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container_screen: {
-    flex: 1,
+    width: "100%",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#073b4c",
-    gap: 8,
+    gap: 16,
   },
   logo: {
-    width: 100,
-    height: 100,
-    backgroundColor: "#06d6a0",
-    borderRadius: 50,
+    width: 132,
+    height: 132,
+    backgroundColor: "#1E82F4",
+    borderRadius: 100,
     justifyContent: "center",
     alignItems: "center",
   },
   title: {
-    fontSize: 24,
+    fontSize: 40,
     fontWeight: "bold",
-    color: "#fff",
-    margin: 12,
+    color: "#1E82F4",
+    marginBottom: 8,
   },
   SignInButton_container: {
-    backgroundColor: "#dddddd",
-    borderRadius: 50,
-    paddingHorizontal: 24,
-    padding: 12,
-    justifyContent: "space-between",
+    backgroundColor: "#1E82F4",
+    borderRadius: 8,
+    paddingVertical: 18,
+    marginTop: 48,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "center",
+    gap: 8,
   },
 
   SignInButton__title: {
-    color: "#073b4c",
+    color: "white",
     fontSize: 16,
   },
 });

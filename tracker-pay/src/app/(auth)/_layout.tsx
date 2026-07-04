@@ -1,7 +1,7 @@
+import { useAuthStore } from "@/stores/authStore";
 import { Slot, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
-import { useAuthStore } from "../../stores/authStore";
 
 export default function AuthLayout() {
   const { isLoggedIn } = useAuthStore();
@@ -23,9 +23,10 @@ const styles = StyleSheet.create({
   layout: {
     flex: 1,
     width: "100%",
+    paddingHorizontal: 32,
     height: "100%",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#073b4c",
+    backgroundColor: "white",
   },
 });
