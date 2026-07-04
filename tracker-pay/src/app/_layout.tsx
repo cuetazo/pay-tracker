@@ -11,7 +11,6 @@ export default function RootLayout() {
   const { silentSignIn, isLoggedIn, onboarding_complete } = useAuthStore();
   const { isDarkMode } = useThemeStore();
 
-
   useEffect(() => {
     GoogleSignin.configure({
       webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
@@ -29,7 +28,7 @@ export default function RootLayout() {
       <Stack>
         <StatusBar style={isDarkMode ? "light" : "dark"} />
         <Stack.Protected guard={!isLoggedIn}>
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="n(auth)" options={{ headerShown: false }} />
         </Stack.Protected>
         <Stack.Protected guard={isLoggedIn && !onboarding_complete}>
           <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
