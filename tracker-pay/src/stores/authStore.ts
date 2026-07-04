@@ -43,6 +43,7 @@ type User = {
 };
 
 type UserState = {
+  isReggistered: boolean;
   isLoggedIn: boolean;
   onboarding_complete: boolean;
   isLoading: boolean;
@@ -62,6 +63,7 @@ export const useAuthStore = create<UserState>()(
       isLoading: true,
       user: null,
       session: null,
+      isReggistered: false,
 
       checkOnboarding: async () => {
         const {
