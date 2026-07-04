@@ -1,0 +1,6 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": ["com.cuetazo.trackerpay.yapetracker.YapeTrackerModule"]
+  }
+}

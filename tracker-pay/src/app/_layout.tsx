@@ -11,7 +11,6 @@ export default function RootLayout() {
   const { silentSignIn, isLoggedIn, onboarding_complete } = useAuthStore();
   const { isDarkMode } = useThemeStore();
 
-
   useEffect(() => {
     GoogleSignin.configure({
       webClientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,

@@ -1,0 +1,2 @@
+com.cuetazo.trackerpay.yapetracker
+xml accessibility_service_config

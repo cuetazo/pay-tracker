@@ -1,4 +1,3 @@
-// utils/authStore.ts
 import {
   GoogleSignin,
   isErrorWithCode,
@@ -9,8 +8,29 @@ import { Session } from "@supabase/supabase-js";
 import { deleteItemAsync, getItem, setItem } from "expo-secure-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import YapeTracker from "../../modules/yape-tracker/src";
 import { supabase } from "./supabase";
 
+//helper function to sync the native session with the current session
+const syncNativeSession = (session: Session, userId: string) => {
+  const supabaseUrl = process.env.EXPO_PUBLIC_VITE_SUPABASE_URL;
+  const supabaseAnonKey =
+    process.env.EXPO_PUBLIC_VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error(
+      "[syncNativeSession] Faltan variables de Supabase en .env. Revisa y reinicia Metro con --clear.",
+    );
+    return;
+  }
+
+  YapeTracker.setSession(
+    supabaseUrl,
+    supabaseAnonKey,
+    session.access_token,
+    userId,
+  );
+};
 type User = {
   id: string;
   googleId?: string;
@@ -87,6 +107,7 @@ export const useAuthStore = create<UserState>()(
                 idToken: null,
               },
             });
+            syncNativeSession(session, session.user.id);
             await get().checkOnboarding();
             set({ isLoading: false });
             return;
@@ -116,6 +137,7 @@ export const useAuthStore = create<UserState>()(
                   idToken: tokens.idToken,
                 },
               });
+              syncNativeSession(data.session, data.user.id);
               await get().checkOnboarding();
             }
           } else {
@@ -158,7 +180,7 @@ export const useAuthStore = create<UserState>()(
                 photo: response.data.user.photo,
                 idToken: response.data.idToken,
               };
-
+              syncNativeSession(data.session, data.user.id);
               const { data: profile, error: profileError } = await supabase
                 .from("profiles")
                 .select("onboarding_completed")
@@ -204,6 +226,7 @@ export const useAuthStore = create<UserState>()(
           set({ isLoading: true });
           await GoogleSignin.signOut();
           await supabase.auth.signOut();
+          YapeTracker.clearSession();
         } catch (error) {
           console.error("SignOut error:", error);
         } finally {
