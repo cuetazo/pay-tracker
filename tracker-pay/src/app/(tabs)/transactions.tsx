@@ -1,4 +1,3 @@
-// app/(protected)/transactions.tsx
 import TransactionCard from "@/components/transaction/TransactionCard";
 import { TransactionFormModal } from "@/components/TransactionFormModal";
 import {
@@ -16,7 +15,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { supabase } from "@/stores/supabase";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,12 +23,15 @@ import {
   RefreshControl,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 
 type Transaction = Database["public"]["Tables"]["transactions"]["Row"];
 type Category = Database["public"]["Tables"]["category"]["Row"];
+
+const PAGE_SIZE = 10;
 
 export default function TransactionsScreen() {
   const { user } = useAuthStore();
@@ -40,6 +42,11 @@ export default function TransactionsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { closeModal } = useModal();
+
+  // ─── Search & expand state ─────────────────────────────────────────────
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
+
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     if (!user?.id) return;
@@ -68,6 +75,11 @@ export default function TransactionsScreen() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Reset expansion whenever the search changes, so results start collapsed again
+  useEffect(() => {
+    setShowAll(false);
+  }, [searchQuery]);
 
   // ─── CRUD ─────────────────────────────────────────────────────────────────
   const openCreate = () => {
@@ -121,7 +133,7 @@ export default function TransactionsScreen() {
     );
   };
 
-  // ─── Totals ───────────────────────────────────────────────────────────────
+  // ─── Totals (siempre sobre el total real, no el filtrado) ─────────────────
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
@@ -153,6 +165,30 @@ export default function TransactionsScreen() {
       maximumFractionDigits: 2,
     })}`;
 
+  // ─── Filtro de búsqueda ─────────────────────────────────────────────────
+  const filteredTransactions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return transactions;
+
+    return transactions.filter((t) => {
+      const categoryName =
+        categories.find((cat) => cat.id === t.categoryId)?.name ?? "";
+      const typeLabel = t.type === "income" ? "ingreso" : "gasto";
+
+      return (
+        (t.destinatary ?? "").toLowerCase().includes(q) ||
+        categoryName.toLowerCase().includes(q) ||
+        typeLabel.includes(q)
+      );
+    });
+  }, [transactions, categories, searchQuery]);
+
+  const visibleTransactions = showAll
+    ? filteredTransactions
+    : filteredTransactions.slice(0, PAGE_SIZE);
+
+  const hasMore = !showAll && filteredTransactions.length > PAGE_SIZE;
+
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <View style={[styles.safeArea, { backgroundColor: c.primary.background }]}>
@@ -164,7 +200,7 @@ export default function TransactionsScreen() {
         />
       ) : (
         <FlatList
-          data={transactions}
+          data={visibleTransactions}
           keyExtractor={(item) => item.id}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -210,19 +246,48 @@ export default function TransactionsScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <MaterialCommunityIcons
-                name="cash-remove"
+                name={searchQuery ? "text-box-search-outline" : "cash-remove"}
                 size={56}
                 color={c.neutral.gray300}
               />
               <Text style={[styles.emptyText, { color: c.neutral.gray500 }]}>
-                Sin transacciones aún
+                {searchQuery
+                  ? "Sin resultados para tu búsqueda"
+                  : "Sin transacciones aún"}
               </Text>
               <Text style={[styles.emptySubtext, { color: c.neutral.gray400 }]}>
-                Toca + para registrar una
+                {searchQuery
+                  ? "Prueba con otro nombre, categoría o tipo"
+                  : "Toca + para registrar una"}
               </Text>
             </View>
           }
-          ListFooterComponent={<View style={{ height: 100 }} />}
+          ListFooterComponent={
+            <View>
+              {hasMore && (
+                <TouchableOpacity
+                  style={[
+                    styles.seeMoreButton,
+                    { backgroundColor: c.neutral.white },
+                  ]}
+                  onPress={() => setShowAll(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[styles.seeMoreText, { color: c.primary.main }]}
+                  >
+                    Ver más ({filteredTransactions.length - PAGE_SIZE} más)
+                  </Text>
+                  <MaterialCommunityIcons
+                    name="chevron-down"
+                    size={20}
+                    color={c.primary.main}
+                  />
+                </TouchableOpacity>
+              )}
+              <View style={{ height: 100 }} />
+            </View>
+          }
           ListHeaderComponent={
             <View style={styles.listHeader}>
               <Text style={[styles.pageTitle, { color: c.neutral.gray900 }]}>
@@ -329,6 +394,37 @@ export default function TransactionsScreen() {
                 </View>
               </View>
 
+              {/* Search bar */}
+              <View
+                style={[
+                  styles.searchBar,
+                  { backgroundColor: c.neutral.white },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="magnify"
+                  size={20}
+                  color={c.neutral.gray400}
+                />
+                <TextInput
+                  style={[styles.searchInput, { color: c.neutral.gray900 }]}
+                  placeholder="Buscar por destinatario, categoría o tipo..."
+                  placeholderTextColor={c.neutral.gray400}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  returnKeyType="search"
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery("")}>
+                    <MaterialCommunityIcons
+                      name="close-circle"
+                      size={18}
+                      color={c.neutral.gray400}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
+
               {/* Section label */}
               <View style={styles.sectionRow}>
                 <Text
@@ -339,7 +435,7 @@ export default function TransactionsScreen() {
                 <Text
                   style={[styles.sectionCount, { color: c.neutral.gray400 }]}
                 >
-                  {transactions.length} movimientos
+                  {filteredTransactions.length} movimientos
                 </Text>
               </View>
             </View>
@@ -443,6 +539,23 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
   },
 
+  // ── Search bar ───────────────────────────────────────────────────
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.lg,
+    ...Shadow.md,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: FontSize.md,
+    paddingVertical: 4,
+  },
+
   // ── Section header ───────────────────────────────────────────────
   sectionRow: {
     flexDirection: "row",
@@ -456,6 +569,22 @@ const styles = StyleSheet.create({
   },
   sectionCount: {
     fontSize: FontSize.sm,
+  },
+
+  // ── Ver más ──────────────────────────────────────────────────────
+  seeMoreButton: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: Spacing.xs,
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.sm,
+    ...Shadow.md,
+  },
+  seeMoreText: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
   },
 
   // ── Empty ────────────────────────────────────────────────────────
