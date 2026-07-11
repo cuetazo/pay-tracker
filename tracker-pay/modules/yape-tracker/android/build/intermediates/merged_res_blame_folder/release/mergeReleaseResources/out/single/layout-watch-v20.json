@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/layout-watch-v20/abc_alert_dialog_button_bar_material.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-appcompat-1.7.0-11:/layout-watch-v20/abc_alert_dialog_button_bar_material.xml"
+    },
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/layout-watch-v20/abc_alert_dialog_title_material.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-appcompat-1.7.0-11:/layout-watch-v20/abc_alert_dialog_title_material.xml"
+    }
+]

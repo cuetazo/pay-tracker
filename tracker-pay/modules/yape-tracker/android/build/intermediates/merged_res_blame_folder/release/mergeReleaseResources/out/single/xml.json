@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/xml/accessibility_service_config.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-main-51:/xml/accessibility_service_config.xml"
+    },
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/xml/rn_dev_preferences.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-react-android-0.83.4-release-26:/xml/rn_dev_preferences.xml"
+    }
+]

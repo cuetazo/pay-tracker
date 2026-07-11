@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/layout-v21/notification_action.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-core-1.17.0-45:/layout-v21/notification_action.xml"
+    },
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/layout-v21/notification_action_tombstone.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-core-1.17.0-45:/layout-v21/notification_action_tombstone.xml"
+    },
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/layout-v21/notification_template_custom_big.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-core-1.17.0-45:/layout-v21/notification_template_custom_big.xml"
+    },
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/layout-v21/notification_template_icon_group.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-core-1.17.0-45:/layout-v21/notification_template_icon_group.xml"
+    }
+]
