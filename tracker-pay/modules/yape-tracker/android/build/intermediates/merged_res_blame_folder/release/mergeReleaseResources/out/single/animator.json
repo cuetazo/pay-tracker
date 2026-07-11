@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/animator/fragment_close_enter.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-fragment-1.5.4-21:/animator/fragment_close_enter.xml"
+    },
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/animator/fragment_fade_exit.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-fragment-1.5.4-21:/animator/fragment_fade_exit.xml"
+    },
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/animator/fragment_open_enter.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-fragment-1.5.4-21:/animator/fragment_open_enter.xml"
+    },
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/animator/fragment_fade_enter.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-fragment-1.5.4-21:/animator/fragment_fade_enter.xml"
+    },
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/animator/fragment_close_exit.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-fragment-1.5.4-21:/animator/fragment_close_exit.xml"
+    },
+    {
+        "merged": "com.cuetazo.trackerpay.yapetracker.yape-tracker-release-50:/animator/fragment_open_exit.xml",
+        "source": "com.cuetazo.trackerpay.yapetracker.yape-tracker-fragment-1.5.4-21:/animator/fragment_open_exit.xml"
+    }
+]
