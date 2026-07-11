@@ -1,0 +1,12 @@
+module.exports = {
+  preset: 'jest-expo',
+  setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
+  setupFiles: ['./jest.setup.js'],
+  transformIgnorePatterns: [
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|@react-native-google-signin/google-signin|d3|d3-.*|internmap|delaunator|robust-predicates)',
+  ],
+  moduleNameMapper: {
+    '^@/assets/(.*)$': '<rootDir>/assets/$1',
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
+};

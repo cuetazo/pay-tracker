@@ -444,6 +444,7 @@ export default function TransactionsScreen() {
 
       {/* FAB */}
       <TouchableOpacity
+        testID="add-transaction-button"
         style={[styles.fab, { backgroundColor: c.primary.main }]}
         onPress={openCreate}
         activeOpacity={0.85}
