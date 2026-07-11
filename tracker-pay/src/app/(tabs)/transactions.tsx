@@ -9,6 +9,7 @@ import {
   Spacing,
 } from "@/constants/theme";
 import { useAppColors } from "@/hooks/useAppColors";
+import { useFocusEffect } from "expo-router";
 import { useModal } from "@/hooks/useModal";
 import { Database } from "@/services/db/schema";
 import { useAuthStore } from "@/stores/authStore";
@@ -72,9 +73,11 @@ export default function TransactionsScreen() {
     setRefreshing(false);
   }, [fetchData]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   // Reset expansion whenever the search changes, so results start collapsed again
   useEffect(() => {
@@ -441,6 +444,7 @@ export default function TransactionsScreen() {
 
       {/* FAB */}
       <TouchableOpacity
+        testID="add-transaction-button"
         style={[styles.fab, { backgroundColor: c.primary.main }]}
         onPress={openCreate}
         activeOpacity={0.85}

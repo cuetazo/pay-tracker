@@ -16,6 +16,7 @@ import { supabase } from "@/stores/supabase";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as d3 from "d3";
 import { useCallback, useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   ActivityIndicator,
   Dimensions,
@@ -361,9 +362,11 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [fetchData]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   const totalIncome = transactions
     .filter((t) => t.type === "income")

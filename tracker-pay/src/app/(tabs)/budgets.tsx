@@ -356,6 +356,7 @@ export default function BudgetsScreen() {
 
       {/* FAB */}
       <TouchableOpacity
+        testID="add-category-button"
         style={[styles.fab, { backgroundColor: c.primary.main }]}
         onPress={openCreate}
         activeOpacity={0.85}
